@@ -800,12 +800,17 @@ jobs:
   build-doxygen:
     name: Doxygen (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: [build-llvm, build-xapian, build-qt6]
+    needs:
+      - build-llvm
+      - build-xapian
+      - build-qt6
+
     # 'actions: read' is required by the SignPath GitHub Action to download the
     # unsigned artifact that gets submitted for code signing (Windows only).
     permissions:
       contents: read
       actions: read
+
     strategy:
       fail-fast: false
       matrix:
@@ -1124,7 +1129,7 @@ jobs:
         ls llvm-install
 
     - name: Remove dynamic library (MacOS)
-      if: matrix.platform == 'macosx'
+      if: matrix.platform == 'macos'
       shell: bash
       run: |
         rm llvm-install/lib/libclang.dylib
