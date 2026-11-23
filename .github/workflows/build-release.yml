@@ -38,6 +38,7 @@ jobs:
 #===============================================================
 # LLVM JOB
 #===============================================================
+
   build-llvm:
     name: LLVM (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -69,6 +70,7 @@ jobs:
             extension: ""
             archive_format: tar.gz
             llvm_version: 21.1.5
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -77,6 +79,7 @@ jobs:
 
     - name: Install dependencies (Linux)
       if: matrix.platform == 'linux'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -91,23 +94,22 @@ jobs:
           libffi-dev \
           libxml2-dev \
           libtinfo-dev
-      shell: bash
 
 #------------------------------------- setup Windows environment for LLVM
-#
+
     - name: Install dependencies (Windows)
       if: matrix.platform == 'windows'
+      shell: bash
       run: |
         choco install ninja
-      shell: bash
 
 #------------------------------------- setup macOS environment for LLVM
 
     - name: Install dependencies (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         brew install cmake ninja
-      shell: bash
 
 #------------------------------------- determine LLVM version to use
 
@@ -115,15 +117,15 @@ jobs:
       id: llvm-version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
       run: |
         set -euo pipefail
         LATEST_TAG="llvmorg-${{ matrix.llvm_version }}"
         echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
         VERSION=${LATEST_TAG#llvmorg-}
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-      shell: bash
 
-#------------------------------------- get LLVM sources to build
+#------------------------------------- download LLVM sources to build
 
     - name: Cache LLVM install
       id: cache-llvm-install
@@ -142,6 +144,7 @@ jobs:
 
     - name: Download LLVM source code
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && steps.cache-llvm-source.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         echo "Downloading LLVM ${{ steps.llvm-version.outputs.tag }}"
         git clone --depth 1 --branch ${{ steps.llvm-version.outputs.tag }} https://github.com/llvm/llvm-project.git
@@ -150,12 +153,12 @@ jobs:
           exit 1
         fi
         echo "LLVM source downloaded successfully"
-      shell: bash
 
-#------------------------------------- configure LLVM
+#------------------------------------- configure and build LLVM
 
-    - name: Configure CMake for LLVM (Linux/macOS)
+    - name: Configure & Build CMake for LLVM (Linux/macOS)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      shell: bash
       run: |
         # Verify LLVM source directory exists
         if [ ! -d "llvm-project/llvm" ]; then
@@ -189,7 +192,6 @@ jobs:
           ${{ matrix.cmake_args }}
           cmake --build . --parallel 2
           cmake --install .
-      shell: bash
 
     - name: Set up MSVC dev command prompt (Windows)
       if: matrix.platform == 'windows'
@@ -197,6 +199,7 @@ jobs:
 
     - name: Configure CMake for LLVM (Windows)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      shell: cmd
       run: |
         mkdir llvm-project
         mkdir llvm-project\build
@@ -227,11 +230,11 @@ jobs:
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
         cmake --build . --parallel 2
         cmake --install .
-      shell: cmd
 
 #------------------------------------- check LLVM build results
 
     - name: Verify static build
+      shell: bash
       run: |
         echo "Checking libclang static library..."
         if [ "${{ matrix.platform }}" == "windows" ]; then
@@ -241,22 +244,21 @@ jobs:
         else
           find ${{ github.workspace }}/llvm-install -name "libclang*.a" | head -10
         fi
-      shell: bash
 
 #------------------------------------- create LLVM artifacts to upload
 
     - name: Create build artifact (Linux/macOS)
       if: matrix.platform != 'windows'
+      shell: bash
       run: |
         cd ${{ github.workspace }}
         tar -czf llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.tar.gz -C llvm-install .
-      shell: bash
 
     - name: Create build artifact (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         Compress-Archive -Path 'llvm-install\\*' -DestinationPath 'llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.zip' -Force
-      shell: pwsh
 
 #------------------------------------- upload LLVM artifacts
 
@@ -271,237 +273,237 @@ jobs:
 # Xapian JOB
 #===============================================================
 
-  build-xapian:
-    name: Xapian (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            cpu: intel
-            platform: linux
-            extension: ""
-            archive_format: tar.gz
-          - os: windows-latest
-            cpu: intel
-            platform: windows
-            extension: .exe
-            archive_format: zip
-          - os: macos-15
-            cpu: arm
-            platform: macos
-            extension: ""
-            archive_format: tar.gz
-          - os: macos-15-intel
-            cpu: intel
-            platform: macos
-            extension: ""
-            archive_format: tar.gz
+build-xapian:
+  name: Xapian (${{ matrix.os }})
+  runs-on: ${{ matrix.os }}
+  strategy:
+    fail-fast: false
+    matrix:
+      include:
+        - os: ubuntu-22.04
+          cpu: intel
+          platform: linux
+          extension: ""
+          archive_format: tar.gz
+        - os: windows-latest
+          cpu: intel
+          platform: windows
+          extension: .exe
+          archive_format: zip
+        - os: macos-15
+          cpu: arm
+          platform: macos
+          extension: ""
+          archive_format: tar.gz
+        - os: macos-15-intel
+          cpu: intel
+          platform: macos
+          extension: ""
+          archive_format: tar.gz
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
 #------------------------------------- setup Linux environment for Xapian
 
-      - name: Install dependencies (Linux)
-        if: matrix.platform == 'linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libmagic-dev \
-            build-essential \
-            autoconf \
-            automake \
-            libtool \
-            git \
-            zlib1g-dev \
-            uuid-dev
-        shell: bash
+    - name: Install dependencies (Linux)
+      if: matrix.platform == 'linux'
+      shell: bash
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          libmagic-dev \
+          build-essential \
+          autoconf \
+          automake \
+          libtool \
+          git \
+          zlib1g-dev \
+          uuid-dev
 
 #------------------------------------- setup Windows environment for Xapian
 
-      - name: Install dependencies (Windows)
-        if: matrix.platform == 'windows'
-        run: |
-          choco install wget -y
-        shell: bash
+    - name: Install dependencies (Windows)
+      if: matrix.platform == 'windows'
+      shell: bash
+      run: |
+        choco install wget -y
 
-      - name: Set up MSVC dev command prompt (Windows)
-        if: matrix.platform == 'windows'
-        uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up MSVC dev command prompt (Windows)
+      if: matrix.platform == 'windows'
+      uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Download zlib (Windows)
-        if: matrix.platform == 'windows'
-        run: |
-          curl -L -o zlib.tgz https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
-          tar zxvf zlib.tgz
+    - name: Download zlib (Windows)
+      if: matrix.platform == 'windows'
+      run: |
+        curl -L -o zlib.tgz https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+        tar zxvf zlib.tgz
 
-      - name: Build zlib (Windows)
-        if: matrix.platform == 'windows'
-        shell: cmd
-        run: |
-          cd zlib-${{ env.ZLIB_VERSION }}
-          @rem nmake -f win32\Makefile.msc LOC="-MT" all
-          nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
+    - name: Build zlib (Windows)
+      if: matrix.platform == 'windows'
+      shell: cmd
+      run: |
+        cd zlib-${{ env.ZLIB_VERSION }}
+        @rem nmake -f win32\Makefile.msc LOC="-MT" all
+        nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
 
-      - name: Install MSYS2 (Windows)
-        uses: msys2/setup-msys2@v2
-        if: matrix.platform == 'windows'
-        with:
-          update: true
-          cache: false
-          install: >-
-            base-devel
-            mingw-w64-x86_64-toolchain
-            autoconf
-            automake
-            libtool
-            jq
+    - name: Install MSYS2 (Windows)
+      uses: msys2/setup-msys2@v2
+      if: matrix.platform == 'windows'
+      with:
+        update: true
+        cache: false
+        install: |
+          base-devel
+          mingw-w64-x86_64-toolchain
+          autoconf
+          automake
+          libtool
+          jq
 
 #------------------------------------- setup macOS environment for Xapian
 
-      - name: Install dependencies (macOS)
-        if: matrix.platform == 'macos'
-        run: |
-          brew install autoconf automake libtool libmagic
-        shell: bash
+    - name: Install dependencies (macOS)
+      if: matrix.platform == 'macos'
+      shell: bash
+      run: |
+        brew install autoconf automake libtool libmagic
 
 #------------------------------------- determine version of Xapian to use
 
-      - name: Get latest Xapian stable release tag
-        id: xapian-version
-        run: |
-          VERSION="${{ env.XAPIAN_VERSION }}"
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Extracted version: $VERSION"
-        shell: bash
+    - name: Get latest Xapian stable release tag
+      id: xapian-version
+      shell: bash
+      run: |
+        VERSION="${{ env.XAPIAN_VERSION }}"
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Extracted version: $VERSION"
 
 #------------------------------------- download Xapian sources to build
 
-      #- name: Cache Xapian source
-      #  id: cache-xapian-source
-      #  uses: actions/cache@v4
-      #  with:
-      #    path: xapian
-      #    key: xapian-core-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.xz
+    #- name: Cache Xapian source
+    #  id: cache-xapian-source
+    #  uses: actions/cache@v4
+    #  with:
+    #    path: xapian
+    #    key: xapian-core-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.xz
 
-      - name: Download Xapian source code
-        #if: steps.cache-xapian-source.outputs.cache-hit != 'true'
-        run: |
-          VERSION="${{ steps.xapian-version.outputs.version }}"
-          echo "Downloading Xapian $VERSION"
-          mkdir xapian
-          cd xapian
-          wget https://oligarchy.co.uk/xapian/$VERSION/xapian-core-$VERSION.tar.xz
-          tar -Jxf xapian-core-$VERSION.tar.xz
-          rm xapian-core-$VERSION.tar.xz
-          echo "Xapian source downloaded successfully"
-        shell: bash
+    - name: Download Xapian source code
+      #if: steps.cache-xapian-source.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        VERSION="${{ steps.xapian-version.outputs.version }}"
+        echo "Downloading Xapian $VERSION"
+        mkdir xapian
+        cd xapian
+        wget https://oligarchy.co.uk/xapian/$VERSION/xapian-core-$VERSION.tar.xz
+        tar -Jxf xapian-core-$VERSION.tar.xz
+        rm xapian-core-$VERSION.tar.xz
+        echo "Xapian source downloaded successfully"
 
 #------------------------------------- configure Xapian build for Linux/macOS
 
-      - name: Configure Xapian (Linux/macOS)
-        if: matrix.platform != 'windows'
-        run: |
-          VERSION="${{ steps.xapian-version.outputs.version }}"
-          cd xapian/xapian-core-$VERSION
-          ./configure \
-            --prefix=${{ github.workspace }}/xapian-install \
-            --enable-static=yes \
-            --enable-shared=no \
-            --disable-documentation \
-            ${{ matrix.configure_args }}
-        shell: bash
+    - name: Configure Xapian (Linux/macOS)
+      if: matrix.platform != 'windows'
+      shell: bash
+      run: |
+        VERSION="${{ steps.xapian-version.outputs.version }}"
+        cd xapian/xapian-core-$VERSION
+        ./configure \
+          --prefix=${{ github.workspace }}/xapian-install \
+          --enable-static=yes \
+          --enable-shared=no \
+          --disable-documentation \
+          ${{ matrix.configure_args }}
 
 #------------------------------------- configure Xapian build for Windows
 
-      - name: Write configure script (Windows)
-        if: matrix.platform == 'windows'
-        run: |
-          VERSION="${{ steps.xapian-version.outputs.version }}"
-          cd xapian/xapian-core-$VERSION
-          cat <<- 'EOF' > run_me.sh
-          export CC="cl -nologo"
-          export CXX="./compile cl -nologo"
-          export CXXFLAGS="-EHsc"
-          export AR="lib"
-          export LD="link"
-          export NM="dumpbin"
-          export CPPFLAGS="-I../../zlib-${{ env.ZLIB_VERSION }}"
-          export LDFLAGS="-I../../zlib-${{ env.ZLIB_VERSION }}"
-          export PREFIX_UNIX="$(cygpath $PREFIX)"
-          echo "prefix=$PREFIX_UNIX"
-          ./configure --enable-static=yes --enable-shared=no --prefix=$PREFIX_UNIX
-          make
-          make install
-          EOF
-          chmod 755 run_me.sh
-          echo "===="
-          cat run_me.sh
-          echo "===="
-        shell: bash
+    - name: Write configure script (Windows)
+      if: matrix.platform == 'windows'
+      shell: bash
+      run: |
+        VERSION="${{ steps.xapian-version.outputs.version }}"
+        cd xapian/xapian-core-$VERSION
+        cat <<- 'EOF' > run_me.sh
+        export CC="cl -nologo"
+        export CXX="./compile cl -nologo"
+        export CXXFLAGS="-EHsc"
+        export AR="lib"
+        export LD="link"
+        export NM="dumpbin"
+        export CPPFLAGS="-I../../zlib-${{ env.ZLIB_VERSION }}"
+        export LDFLAGS="-I../../zlib-${{ env.ZLIB_VERSION }}"
+        export PREFIX_UNIX="$(cygpath $PREFIX)"
+        echo "prefix=$PREFIX_UNIX"
+        ./configure --enable-static=yes --enable-shared=no --prefix=$PREFIX_UNIX
+        make
+        make install
+        EOF
+        chmod 755 run_me.sh
+        echo "===="
+        cat run_me.sh
+        echo "===="
 
-      - name: Configure and Build Xapian (Windows)
-        if: matrix.platform == 'windows'
-        shell: cmd
-        run: |
-          @echo on
-          set VERSION=${{ steps.xapian-version.outputs.version }}
-          cd xapian\xapian-core-%VERSION%
-          set PATH=C:\msys64\usr\bin;%PATH%
-          set LIB=..\..\zlib-${{ env.ZLIB_VERSION }};%LIB%
-          set PREFIX=${{ github.workspace }}\xapian-install
-          set MSYS2_PATH_TYPE=inherit
-          bash -c "./run_me.sh"
+    - name: Configure and Build Xapian (Windows)
+      if: matrix.platform == 'windows'
+      shell: cmd
+      run: |
+        @echo on
+        set VERSION=${{ steps.xapian-version.outputs.version }}
+        cd xapian\xapian-core-%VERSION%
+        set PATH=C:\msys64\usr\bin;%PATH%
+        set LIB=..\..\zlib-${{ env.ZLIB_VERSION }};%LIB%
+        set PREFIX=${{ github.workspace }}\xapian-install
+        set MSYS2_PATH_TYPE=inherit
+        bash -c "./run_me.sh"
 
-      - name: Build Xapian (Linux/macOS)
-        if: matrix.platform != 'windows'
-        run: |
-          VERSION="${{ steps.xapian-version.outputs.version }}"
-          cd xapian/xapian-core-$VERSION
-          make
-          make install
-        shell: bash
+    - name: Build Xapian (Linux/macOS)
+      if: matrix.platform != 'windows'
+      shell: bash
+      run: |
+        VERSION="${{ steps.xapian-version.outputs.version }}"
+        cd xapian/xapian-core-$VERSION
+        make
+        make install
 
 #------------------------------------- verify Xapian build results
 
-      - name: Verify static build
-        run: |
-          echo "Checking Xapian static library..."
-          cd xapian
-          if [ "${{ matrix.platform }}" == "windows" ]; then
-            find "$(cygpath "${{ github.workspace }}")/xapian-install" -name "*.lib" | head -10
-          else
-            find ${{ github.workspace }}/xapian-install -name "*.a" | head -10
-            nm -C ${{ github.workspace }}/xapian-install/lib/libxapian.a  | grep " U " | sort | uniq
-          fi
-        shell: bash
+    - name: Verify static build
+      shell: bash
+      run: |
+        echo "Checking Xapian static library..."
+        cd xapian
+        if [ "${{ matrix.platform }}" == "windows" ]; then
+          find "$(cygpath "${{ github.workspace }}")/xapian-install" -name "*.lib" | head -10
+        else
+          find ${{ github.workspace }}/xapian-install -name "*.a" | head -10
+          nm -C ${{ github.workspace }}/xapian-install/lib/libxapian.a  | grep " U " | sort | uniq
+        fi
 
 #------------------------------------- create Xapian build artifacts to upload
 
-      - name: Create build artifact (Linux/macOS)
-        if: matrix.platform != 'windows'
-        run: |
-          cd ${{ github.workspace }}
-          tar -czf xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.gz -C xapian-install .
-        shell: bash
+    - name: Create build artifact (Linux/macOS)
+      if: matrix.platform != 'windows'
+      shell: bash
+      run: |
+        cd ${{ github.workspace }}
+        tar -czf xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.gz -C xapian-install .
 
-      - name: Create build artifact (Windows)
-        if: matrix.platform == 'windows'
-        run: |
-          Compress-Archive -Path 'xapian-install\\*' -DestinationPath 'xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.zip' -Force
-        shell: pwsh
+    - name: Create build artifact (Windows)
+      if: matrix.platform == 'windows'
+      shell: pwsh
+      run: |
+        Compress-Archive -Path 'xapian-install\\*' -DestinationPath 'xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.zip' -Force
 
 #------------------------------------- upload Xapian build artifacts
 
-      - name: Upload Xapian static build
-        uses: actions/upload-artifact@v6
-        with:
-          name: xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}
-          path: xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.${{ matrix.archive_format }}
-          retention-days: 30
+    - name: Upload Xapian static build
+      uses: actions/upload-artifact@v6
+      with:
+        name: xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}
+        path: xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.${{ matrix.archive_format }}
+        retention-days: 30
 
 #===============================================================
 # Qt6 JOB
@@ -534,6 +536,7 @@ jobs:
             platform: macos
             extension: ""
             archive_format: tar.gz
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -542,6 +545,7 @@ jobs:
 
     - name: Install dependencies (Linux)
       if: matrix.platform == 'linux'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -575,15 +579,14 @@ jobs:
           libxkbcommon-x11-dev \
           libgl1-mesa-dev \
           libglu1-mesa-dev
-      shell: bash
 
 #------------------------------------- setup Windows environment for Qt6
 
     - name: Install dependencies (Windows)
       if: matrix.platform == 'windows'
+      shell: bash
       run: |
         choco install ninja
-      shell: bash
 
     - name: Set up MSVC dev command prompt (Windows)
       if: matrix.platform == 'windows'
@@ -593,24 +596,24 @@ jobs:
 
     - name: Install dependencies (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         brew install cmake ninja
         which ninja
-      shell: bash
 
 #------------------------------------- determine Qt6 version to use
 
     - name: Set Qt6 version
       id: qt6-version
+      shell: bash
       run: |
         # Using a fixed Qt6 version for stability
         # Update this version when a new Qt6 is released
         VERSION="${{ env.QT6_VERSION }}"
         echo "Qt6 version: $VERSION"
         echo "version=$VERSION" >> $GITHUB_OUTPUT
-      shell: bash
 
-#------------------------------------- download Qt6 sources
+#------------------------------------- download Qt6 sources to build
 
     - name: Cache Qt6 install
       id: cache-qt6-install
@@ -629,6 +632,7 @@ jobs:
 
     - name: Download Qt6 source code
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && steps.cache-qt6-source.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         echo "Downloading Qt6 ${{ steps.qt6-version.outputs.version }}"
         VERSION="${{ steps.qt6-version.outputs.version }}"
@@ -667,95 +671,94 @@ jobs:
           exit 1
         fi
         echo "Qt6 source downloaded successfully"
-      shell: bash
 
-#------------------------------------- configure Qt6 for building
+#------------------------------------- configure and build Qt6 for building
 
-    - name: Configure CMake for Qt6 Base (Windows)
+    - name: Configure CMake & Build Qt6 Base (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd qt6-source\qtbase
         call configure.bat -static -static-runtime -release -prefix ${{ github.workspace }}\qt6-install -platform win32-msvc -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -sql-odbc -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
         cmake --build . --parallel
         cmake --install .
-      shell: cmd
 
-    - name: Configure CMake for Qt6 Base (Linux)
+    - name: Configure CMake & Build Qt6 Base (Linux)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'linux'
+      shell: bash
       run: |
         cd qt6-source/qtbase
         ./configure -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform linux-g++-64 -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
         cmake --build . --parallel
         cmake --install .
-      shell: bash
 
-    - name: Configure CMake for Qt6 Base (macOS)
+    - name: Configure CMake & Build Qt6 Base (macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'macos'
+      shell: bash
       run: |
         cd qt6-source/qtbase
         ./configure -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform macx-clang -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
         cmake --build . --parallel
         cmake --install .
-      shell: bash
 
-    - name: Configure CMake for Qt6 tools (Windows)
+    - name: Configure CMake & Build Qt6 tools (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd qt6-source\qttools
         call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
         cmake --build . --parallel
         cmake --install .
-      shell: cmd
 
-    - name: Configure CMake for Qt6 tools (Linux/macOS)
+    - name: Configure CMake & Build Qt6 tools (Linux/macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      shell: bash
       run: |
         cd qt6-source/qttools
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
         cmake --build . --parallel
         cmake --install .
-      shell: bash
 
-    - name: Configure CMake for Qt6 SVG (Windows)
+    - name: Configure CMake & Build Qt6 SVG (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd qt6-source\qtsvg
         call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
         cmake --build . --parallel
         cmake --install .
-      shell: cmd
 
-    - name: Configure CMake for Qt6 SVG (Linux/macOS)
+    - name: Configure CMake & Build Qt6 SVG (Linux/macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      shell: bash
       run: |
         cd qt6-source/qtsvg
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
         cmake --build . --parallel
         cmake --install .
-      shell: bash
 
-    - name: Configure CMake for Qt6 translations (Windows)
+    - name: Configure CMake & Build Qt6 translations (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd qt6-source\qttranslations
         call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
         cmake --build . --parallel
         cmake --install .
-      shell: cmd
 
-    - name: Configure CMake for Qt6 translations (Linux/macOS)
+    - name: Configure CMake & Build Qt6 translations (Linux/macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      shell: bash
       run: |
         cd qt6-source/qttranslations
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
         cmake --build . --parallel
         cmake --install .
-      shell: bash
-
 
 #------------------------------------- verify Qt6 build results
 
     - name: Verify static build
+      shell: bash
       run: |
         echo "Checking Qt6 static libraries..."
         if [ "${{ matrix.platform }}" == "windows" ]; then
@@ -765,22 +768,21 @@ jobs:
         else
           find ${{ github.workspace }}/qt6-install -name "libQt6*.a" | head -10
         fi
-      shell: bash
 
 #------------------------------------- create Qt6 build artifacts to upload
 
     - name: Create build artifact (Linux/macOS)
       if: matrix.platform != 'windows'
+      shell: bash
       run: |
         cd ${{ github.workspace }}
         tar -czf qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.tar.gz -C qt6-install .
-      shell: bash
 
     - name: Create build artifact (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         Compress-Archive -Path 'qt6-install\\*' -DestinationPath 'qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.zip' -Force
-      shell: pwsh
 
 #------------------------------------- upload the Qt6 build artifacts
 
@@ -794,6 +796,7 @@ jobs:
 #===============================================================
 # DOXYGEN JOB
 #===============================================================
+
   build-doxygen:
     name: Doxygen (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -839,7 +842,7 @@ jobs:
 #------------------------------------- setup Linux environment
 
     - name: Install dependencies (Linux)
-      if: matrix.platform == 'linux'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -891,15 +894,14 @@ jobs:
           texlive-font-utils \
           ghostscript \
           graphviz
-      shell: bash
 
 #------------------------------------- setup Windows environment
 
     - name: Install dependencies (Windows)
       if: matrix.platform == 'windows'
+      shell: bash
       run: |
         choco install ninja winflexbison3 ghostscript graphviz.portable innosetup
-      shell: bash
 
     - name: Install MikTeX (Windows)
       if: matrix.platform == 'windows'
@@ -925,12 +927,12 @@ jobs:
 
     - name: Setting Ghostscript paths (Windows)
       if: matrix.platform == 'windows'
+      shell: bash
       run: |
         export GSpath=`find /c/Prog*/gs -name gswin\*c.exe | sed -e "s/gswin.*c.exe//"`
         export PATH="$GSpath:$PATH"
         export GSpath=`echo "$GSpath" | sed -e "s%/c%C:%"`
         echo "$GSpath" >> $GITHUB_PATH
-      shell: bash
 
     - name: Refresh Env (Windows)
       if: matrix.platform == 'windows'
@@ -940,6 +942,7 @@ jobs:
 
     - name: Check tool versions (Windows)
       if: matrix.platform == 'windows'
+      shell: bash
       run: |
         echo "=== perl ===";
         perl --version;
@@ -961,19 +964,18 @@ jobs:
         dot -V;
         echo "=== ghostscript ===";
         gswin64c --version;
-      shell: bash
 
 #------------------------------------- setup macOS environment
 
     - name: Install dependencies (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         brew install cmake ninja flex bison ossp-uuid
         # make sure flex and bison from brew are found and not the one from the system.
         echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
         echo "$(brew --prefix flex)/bin" >> $GITHUB_PATH
         echo "LOC=$(brew --prefix ossp-uuid)"
-      shell: bash
 
 #------------------------------------- install Visual Studio compiler
 
@@ -985,14 +987,14 @@ jobs:
 
     - name: Download htmlhelp (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         # curl -L -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-      shell: pwsh
 
     - name: Verify hhc.exe is installed
       if: matrix.platform == 'windows'
-      shell: powershell
+      shell: pwsh
       run: |
           $possiblePaths = @(
             "$env:ProgramFiles(x86)\HTML Help Workshop\hhc.exe",
@@ -1042,6 +1044,7 @@ jobs:
       id: doxygen-version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
       run: |
         # use latest tagged version
         if [ "${{ github.event.inputs.git_source_version }}" == "tagged" ]; then
@@ -1070,12 +1073,12 @@ jobs:
           echo "tag=master" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         fi
-      shell: bash
 
-#------------------------------------- download Doxygen sources
+#------------------------------------- download Doxygen sources to build
 
     - name: Download Doxygen source code
       #if: steps.cache-doxygen-source.outputs.cache-hit != 'true'
+      shell: bash
       run: |
         echo "Downloading Doxygen ${{ steps.doxygen-version.outputs.tag }}"
 
@@ -1091,10 +1094,9 @@ jobs:
           exit 1
         fi
         echo "Doxygen source downloaded successfully"
-      shell: bash
 
 #------------------------------------- prepare libclang dependency
-#
+
     - name: Download LLVM artifacts
       uses: actions/download-artifact@v7
       with:
@@ -1103,39 +1105,39 @@ jobs:
 
     - name: Extract LLVM version from artifact
       id: llvm-version
+      shell: bash
       run: |
         cd llvm-artifact
         FILENAME=$(ls llvm-static-* | head -1)
         VERSION=$(echo "$FILENAME" | sed -E 's/llvm-static-(.+)-${{ matrix.os }}.*/\1/')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "LLVM version from artifact: $VERSION"
-      shell: bash
 
     - name: Extract LLVM artifacts (Linux/macOS)
       if: matrix.platform != 'windows'
+      shell: bash
       run: |
         mkdir -p llvm-install
         ls llvm-artifact
         # Extract the tar.gz archive to the install directory
         tar -xzf llvm-artifact/llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.tar.gz -C llvm-install
         ls llvm-install
-      shell: bash
 
     - name: Remove dynamic library (MacOS)
       if: matrix.platform == 'macosx'
+      shell: bash
       run: |
         rm llvm-install/lib/libclang.dylib
         rm llvm-install/lib/libclang-cpp.dylib
-      shell: bash
 
     - name: Extract LLVM artifacts (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         mkdir llvm-install
         dir llvm-artifact
         Expand-Archive -Path "llvm-artifact/llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.zip" -DestinationPath "llvm-install"
         dir llvm-install
-      shell: pwsh
 
 #------------------------------------- prepare Qt dependency
 
@@ -1147,32 +1149,32 @@ jobs:
 
     - name: Extract Qt6 version from artifact
       id: qt6-version
+      shell: bash
       run: |
         cd qt6-artifact
         FILENAME=$(ls qt6-static-* | head -1)
         VERSION=$(echo "$FILENAME" | sed -E 's/qt6-static-(.+)-${{ matrix.os }}.*/\1/')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Qt6 version from artifact: $VERSION"
-      shell: bash
 
     - name: Extract Qt6 artifacts (Linux/macOS)
       if: matrix.platform != 'windows'
+      shell: bash
       run: |
         mkdir -p qt6-install
         ls qt6-artifact
         # Extract the tar.gz archive to the install directory
         tar -xzf qt6-artifact/qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.tar.gz -C qt6-install
         ls qt6-install
-      shell: bash
 
     - name: Extract Qt6 artifacts (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         mkdir qt6-install
         dir qt6-artifact
         Expand-Archive -Path "qt6-artifact/qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.zip" -DestinationPath "qt6-install"
         dir qt6-install
-      shell: pwsh
 
 #------------------------------------- prepare Xapian dependency
 
@@ -1184,37 +1186,38 @@ jobs:
 
     - name: Extract Xapian version from artifact
       id: xapian-version
+      shell: bash
       run: |
         cd xapian-artifact
         FILENAME=$(ls xapian-static-* | head -1)
         VERSION=$(echo "$FILENAME" | sed -E 's/xapian-static-(.+)-${{ matrix.os }}.*/\1/')
         echo "version=$VERSION" >> $GITHUB_OUTPUT
         echo "Xapian version from artifact: $VERSION"
-      shell: bash
 
     - name: Extract Xapian artifacts (Linux/macOS)
       if: matrix.platform != 'windows'
+      shell: bash
       run: |
         mkdir -p xapian-install
         ls xapian-artifact
         # Extract the tar.gz archive to the install directory
         tar -xzf xapian-artifact/xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.gz -C xapian-install
         ls xapian-install
-      shell: bash
 
     - name: Extract Xapian artifacts (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         mkdir xapian-install
         dir xapian-artifact
         Expand-Archive -Path "xapian-artifact/xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.zip" -DestinationPath "xapian-install"
         dir xapian-install
-      shell: pwsh
 
 #------------------------------------- configure build
 
     - name: Configure CMake for Doxygen (Linux)
       if: matrix.platform == 'linux'
+      shell: bash
       run: |
         mkdir -p doxygen/build
         cd doxygen/build
@@ -1240,11 +1243,10 @@ jobs:
           -Dstatic_libxapian=YES \
           -Dforce_qt=Qt6 \
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/llvm-install;${{ github.workspace }}/qt6-install;${{ github.workspace }}/xapian-install"
-      shell: bash
-
 
     - name: Configure CMake for Doxygen (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         mkdir -p doxygen/build
         cd doxygen/build
@@ -1269,10 +1271,10 @@ jobs:
           -Dstatic_libxapian=YES \
           -Dforce_qt=Qt6 \
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/llvm-install;${{ github.workspace }}/qt6-install;${{ github.workspace }}/xapian-install"
-      shell: bash
 
     - name: Configure CMake for Doxygen (Windows)
       if: matrix.platform == 'windows'
+      shell: cmd
       run: |
         mkdir doxygen\build
         cd doxygen\build
@@ -1290,71 +1292,71 @@ jobs:
               -DQt6Widgets_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Widgets ^
               -DZLIB_LIBRARY=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\zlib.lib ^
               -DZLIB_INCLUDE_DIR=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\include
-      shell: cmd
 
 #------------------------------------- build targets
 
     - name: Build Doxygen (Linux)
       if: matrix.platform == 'linux'
+      shell: bash
       run: |
         cd doxygen/build
         make -j$(nproc)
         make docs
         make install
-      shell: bash
 
     - name: Build Doxygen (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         cd doxygen/build
         cmake --build . --parallel 2
-      shell: bash
 
     - name: Build Doxygen (Windows)
       if: matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd doxygen\build
         cmake --build . --parallel
-      shell: cmd
 
     - name: Build Doxygen docs (Windows)
       if: matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd doxygen\build
         cmake --build . --parallel 1 --target docs
         cmake --build . --parallel 1 --target docs_chm
-      shell: cmd
 
     - name: Install Doxygen (Windows)
       if: matrix.platform == 'windows'
+      shell: cmd
       run: |
         cd doxygen\build
         cmake --install .
-      shell: cmd
 
 #------------------------------------- verify build results
 
     - name: Verify Doxygen build (Linux)
       if: matrix.platform == 'linux'
+      shell: bash
       run: |
         echo "Checking Doxygen binary..."
         ls -lh ${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }}
         # Try to run doxygen to verify it works
         ${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }} --version || echo "Note: doxygen version check failed (may be expected on some platforms)"
-      shell: bash
 
     - name: Verify Doxygen build (Windows)
       if: matrix.platform == 'windows'
+      shell: cmd
       run: |
         echo "Checking Doxygen binary..."
         ls -lh ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }}
         ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }} --version || echo "Note: doxygen version check failed (may be expected on some platforms)"
-      shell: cmd
 
 #------------------------------------- create installation artifacts
 
     - name: Prepare executables (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         subst R: ${{ github.workspace }}
         mkdir installer
@@ -1362,7 +1364,6 @@ jobs:
         editbin R:\doxygen-install\bin\doxygen.exe /SUBSYSTEM:CONSOLE,6.00 /OSVERSION:5.1
         editbin R:\doxygen-install\bin\doxyindexer.exe /SUBSYSTEM:CONSOLE,6.00 /OSVERSION:5.1
         editbin R:\doxygen-install\bin\doxysearch.cgi.exe /SUBSYSTEM:CONSOLE,6.00 /OSVERSION:5.1
-      shell: powershell
 
 #------------------------------------- sign the Windows executables via SignPath
 #
@@ -1402,12 +1403,13 @@ jobs:
 
     - name: Replace executables with signed ones (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         Copy-Item -Path 'signed\executables\*' -Destination 'doxygen-install\bin' -Force
-      shell: powershell
 
     - name: Create installer (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         Write-Host "Using version: '${{ steps.doxygen-version.outputs.version }}'"
         (Get-Content .\windows\doxygen.iss -Raw) -replace '\$VERSION','${{ steps.doxygen-version.outputs.version }}' | Set-Content -Encoding ASCII .\doxygen-versioned.iss
@@ -1431,7 +1433,6 @@ jobs:
           'R:\doxygen-install\bin\libclang.dll'
         )
         Compress-Archive -Path $doxygen_zip_files -DestinationPath 'R:\installer\doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip' -Force
-      shell: powershell
 
     - name: Upload unsigned installer (Windows)
       if: matrix.platform == 'windows'
@@ -1458,13 +1459,13 @@ jobs:
 
     - name: Replace installer with signed one (Windows)
       if: matrix.platform == 'windows'
+      shell: pwsh
       run: |
         Copy-Item -Path 'signed\installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Destination 'installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Force
-      shell: powershell
-
 
     - name: Create installer (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         mkdir installer
 
@@ -1482,14 +1483,13 @@ jobs:
         cp doxygen/build/bin/doxywizard     image/Doxygen.app/Contents/MacOS/Doxywizard
         xattr -c -r image/Doxygen.app
 
-      shell: bash
-
     - name: Codesign executable (macOS)
       if: matrix.platform == 'macos'
       env:
         MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
         MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
+      shell: bash
       run: |
         # decode certificate
         echo "--- decoding certificate"
@@ -1535,10 +1535,9 @@ jobs:
         codesign -v image/Doxygen.app/Contents/MacOS/Doxywizard --verbose
         codesign -v image/Doxygen.app --verbose
 
-      shell: bash
-
     - name: Create installer continued (macOS)
       if: matrix.platform == 'macos'
+      shell: bash
       run: |
         /usr/sbin/diskutil rename image Doxygen
         hdiutil detach image
@@ -1553,7 +1552,6 @@ jobs:
         cp doxygen/build/bin/doxysearch.cgi doxygen-${{ steps.doxygen-version.outputs.version }}
         xattr -c -r doxygen-${{ steps.doxygen-version.outputs.version }}
         zip -r installer/doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip doxygen-${{ steps.doxygen-version.outputs.version }}
-      shell: bash
 
     - name: Notarization and Stapling (macOS)
       if: matrix.platform == 'macos'
@@ -1561,13 +1559,14 @@ jobs:
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
         MACOS_NOTARIZATION_USER: ${{ secrets.MACOS_NOTARIZATION_USER }}
         MACOS_NOTARIZATION_PWD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
+      shell: bash
       run: |
         xcrun notarytool submit installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg --apple-id $MACOS_NOTARIZATION_USER --team-id $MACOS_SIGNID --password $MACOS_NOTARIZATION_PWD --output-format json --wait
         xcrun stapler staple installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
-      shell: bash
 
     - name: Create installer (Linux)
       if: matrix.platform == 'linux'
+      shell: bash
       run: |
         VERSION=${{ steps.doxygen-version.outputs.version }}
 
@@ -1610,7 +1609,6 @@ jobs:
         cp doxygen/build/man/*.1 $DESTDIR/man/man1
         gzip $DESTDIR/man/man1/*
         tar -C package -z -c -v -f installer/doxygen-$VERSION.linux.bin.tar.gz doxygen-$VERSION
-      shell: bash
 
 #------------------------------------- upload individual artifacts
 
@@ -1669,4 +1667,3 @@ jobs:
       with:
         name: doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
-
