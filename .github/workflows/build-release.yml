@@ -273,35 +273,35 @@ jobs:
 # Xapian JOB
 #===============================================================
 
-build-xapian:
-  name: Xapian (${{ matrix.os }})
-  runs-on: ${{ matrix.os }}
-  strategy:
-    fail-fast: false
-    matrix:
-      include:
-        - os: ubuntu-22.04
-          cpu: intel
-          platform: linux
-          extension: ""
-          archive_format: tar.gz
-        - os: windows-latest
-          cpu: intel
-          platform: windows
-          extension: .exe
-          archive_format: zip
-        - os: macos-15
-          cpu: arm
-          platform: macos
-          extension: ""
-          archive_format: tar.gz
-        - os: macos-15-intel
-          cpu: intel
-          platform: macos
-          extension: ""
-          archive_format: tar.gz
+  build-xapian:
+    name: Xapian (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            cpu: intel
+            platform: linux
+            extension: ""
+            archive_format: tar.gz
+          - os: windows-latest
+            cpu: intel
+            platform: windows
+            extension: .exe
+            archive_format: zip
+          - os: macos-15
+            cpu: arm
+            platform: macos
+            extension: ""
+            archive_format: tar.gz
+          - os: macos-15-intel
+            cpu: intel
+            platform: macos
+            extension: ""
+            archive_format: tar.gz
 
-  steps:
+    steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
