@@ -48,26 +48,18 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
-            platform: linux
-            extension: ""
             archive_format: tar.gz
-            llvm_version: 15.0.7 # manually overriding to latest version in main for the OS version, see https://ubuntu.com/developers/docs/reference/availability/llvm/
+            llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
           - os: windows-latest
             cpu: intel
-            platform: windows
-            extension: .exe
             archive_format: zip
             llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15
             cpu: arm
-            platform: macos
-            extension: ""
             archive_format: tar.gz
             llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15-intel
             cpu: intel
-            platform: macos
-            extension: ""
             archive_format: tar.gz
             llvm_version: ${{ env.LLVM_VERSION }}
     steps:
@@ -77,7 +69,7 @@ jobs:
 #------------------------------------- setup Linux environment for LLVM
 
     - name: Install dependencies (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -97,7 +89,7 @@ jobs:
 #------------------------------------- setup Windows environment for LLVM
 #
     - name: Install dependencies (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         choco install ninja
       shell: bash
@@ -105,7 +97,7 @@ jobs:
 #------------------------------------- setup macOS environment for LLVM
 
     - name: Install dependencies (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         brew install cmake ninja
       shell: bash
@@ -148,7 +140,7 @@ jobs:
 #------------------------------------- configure LLVM
 
     - name: Configure CMake for LLVM (Linux/macOS)
-      if: steps.cache-llvm-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
       run: |
         # Verify LLVM source directory exists
         if [ ! -d "llvm-project/llvm" ]; then
@@ -185,11 +177,11 @@ jobs:
       shell: bash
 
     - name: Set up MSVC dev command prompt (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Configure CMake for LLVM (Windows)
-      if: steps.cache-llvm-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
       run: |
         mkdir llvm-project
         mkdir llvm-project\build
@@ -227,7 +219,7 @@ jobs:
     - name: Verify static build
       run: |
         echo "Checking libclang static library..."
-        if [ "${{ matrix.platform }}" == "windows" ]; then
+        if [ "${{ runner.os }}" == "Windows" ]; then
           win_search_dir="${{ github.workspace }}/llvm-install"
           win_search_dir="${search_dir//\\//}"
           find $win_search_dir -name "libclang*.lib" -o -name "clang*.lib" | head -10
@@ -239,14 +231,14 @@ jobs:
 #------------------------------------- create LLVM artifacts to upload
 
     - name: Create build artifact (Linux/macOS)
-      if: matrix.platform != 'windows'
+      if: runner.os != 'Windows'
       run: |
         cd ${{ github.workspace }}
         tar -czf llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.tar.gz -C llvm-install .
       shell: bash
 
     - name: Create build artifact (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         Compress-Archive -Path 'llvm-install\\*' -DestinationPath 'llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.zip' -Force
       shell: pwsh
@@ -273,23 +265,15 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
-            platform: linux
-            extension: ""
             archive_format: tar.gz
           - os: windows-latest
             cpu: intel
-            platform: windows
-            extension: .exe
             archive_format: zip
           - os: macos-15
             cpu: arm
-            platform: macos
-            extension: ""
             archive_format: tar.gz
           - os: macos-15-intel
             cpu: intel
-            platform: macos
-            extension: ""
             archive_format: tar.gz
 
     steps:
@@ -299,7 +283,7 @@ jobs:
 #------------------------------------- setup Linux environment for Xapian
 
       - name: Install dependencies (Linux)
-        if: matrix.platform == 'linux'
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -316,23 +300,23 @@ jobs:
 #------------------------------------- setup Windows environment for Xapian
 
       - name: Install dependencies (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         run: |
           choco install wget -y
         shell: bash
 
       - name: Set up MSVC dev command prompt (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Download zlib (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         run: |
           curl -L -o zlib.tgz https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
           tar zxvf zlib.tgz
 
       - name: Build zlib (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         shell: cmd
         run: |
           cd zlib-${{ env.ZLIB_VERSION }}
@@ -341,7 +325,7 @@ jobs:
 
       - name: Install MSYS2 (Windows)
         uses: msys2/setup-msys2@v2
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         with:
           update: true
           cache: false
@@ -356,7 +340,7 @@ jobs:
 #------------------------------------- setup macOS environment for Xapian
 
       - name: Install dependencies (macOS)
-        if: matrix.platform == 'macos'
+        if: runner.os == 'macOS'
         run: |
           brew install autoconf automake libtool libmagic
         shell: bash
@@ -388,7 +372,7 @@ jobs:
 #------------------------------------- configure Xapian build for Linux/macOS
 
       - name: Configure Xapian (Linux/macOS)
-        if: matrix.platform != 'windows'
+        if: runner.os != 'Windows'
         run: |
           VERSION="${{ steps.xapian-version.outputs.version }}"
           cd xapian/xapian-core-$VERSION
@@ -403,7 +387,7 @@ jobs:
 #------------------------------------- configure Xapian build for Windows
 
       - name: Write configure script (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         run: |
           VERSION="${{ steps.xapian-version.outputs.version }}"
           cd xapian/xapian-core-$VERSION
@@ -429,7 +413,7 @@ jobs:
         shell: bash
 
       - name: Configure and Build Xapian (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         shell: cmd
         run: |
           @echo on
@@ -442,7 +426,7 @@ jobs:
           bash -c "./run_me.sh"
 
       - name: Build Xapian (Linux/macOS)
-        if: matrix.platform != 'windows'
+        if: runner.os != 'Windows'
         run: |
           VERSION="${{ steps.xapian-version.outputs.version }}"
           cd xapian/xapian-core-$VERSION
@@ -456,7 +440,7 @@ jobs:
         run: |
           echo "Checking Xapian static library..."
           cd xapian
-          if [ "${{ matrix.platform }}" == "windows" ]; then
+          if [ "${{ runner.os }}" == "Windows" ]; then
             find "$(cygpath "${{ github.workspace }}")/xapian-install" -name "*.lib" | head -10
           else
             find ${{ github.workspace }}/xapian-install -name "*.a" | head -10
@@ -467,14 +451,14 @@ jobs:
 #------------------------------------- create Xapian build artifacts to upload
 
       - name: Create build artifact (Linux/macOS)
-        if: matrix.platform != 'windows'
+        if: runner.os != 'Windows'
         run: |
           cd ${{ github.workspace }}
           tar -czf xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.gz -C xapian-install .
         shell: bash
 
       - name: Create build artifact (Windows)
-        if: matrix.platform == 'windows'
+        if: runner.os == 'Windows'
         run: |
           Compress-Archive -Path 'xapian-install\\*' -DestinationPath 'xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.zip' -Force
         shell: pwsh
@@ -501,23 +485,15 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
-            platform: linux
-            extension: ""
             archive_format: tar.gz
           - os: windows-latest
             cpu: intel
-            platform: windows
-            extension: .exe
             archive_format: zip
           - os: macos-15
             cpu: arm
-            platform: macos
-            extension: ""
             archive_format: tar.gz
           - os: macos-15-intel
             cpu: intel
-            platform: macos
-            extension: ""
             archive_format: tar.gz
     steps:
     - name: Checkout repository
@@ -526,7 +502,7 @@ jobs:
 #------------------------------------- setup Linux environment for Qt6
 
     - name: Install dependencies (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -565,19 +541,19 @@ jobs:
 #------------------------------------- setup Windows environment for Qt6
 
     - name: Install dependencies (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         choco install ninja
       shell: bash
 
     - name: Set up MSVC dev command prompt (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
 #------------------------------------- setup macOS environment for Qt6
 
     - name: Install dependencies (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         brew install cmake ninja
         which ninja
@@ -649,7 +625,7 @@ jobs:
 #------------------------------------- configure Qt6 for building
 
     - name: Configure CMake for Qt6 Base (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
       run: |
         cd qt6-source\qtbase
         call configure.bat -static -static-runtime -release -prefix ${{ github.workspace }}\qt6-install -platform win32-msvc -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -sql-odbc -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
@@ -658,7 +634,7 @@ jobs:
       shell: cmd
 
     - name: Configure CMake for Qt6 Base (Linux)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'linux'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Linux'
       run: |
         cd qt6-source/qtbase
         ./configure -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform linux-g++-64 -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
@@ -667,7 +643,7 @@ jobs:
       shell: bash
 
     - name: Configure CMake for Qt6 Base (macOS)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'macos'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'macOS'
       run: |
         cd qt6-source/qtbase
         ./configure -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform macx-clang -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
@@ -676,7 +652,7 @@ jobs:
       shell: bash
 
     - name: Configure CMake for Qt6 tools (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
       run: |
         cd qt6-source\qttools
         call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
@@ -685,7 +661,7 @@ jobs:
       shell: cmd
 
     - name: Configure CMake for Qt6 tools (Linux/macOS)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
       run: |
         cd qt6-source/qttools
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
@@ -694,7 +670,7 @@ jobs:
       shell: bash
 
     - name: Configure CMake for Qt6 SVG (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
       run: |
         cd qt6-source\qtsvg
         call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
@@ -703,7 +679,7 @@ jobs:
       shell: cmd
 
     - name: Configure CMake for Qt6 SVG (Linux/macOS)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os!= 'Windows'
       run: |
         cd qt6-source/qtsvg
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
@@ -712,7 +688,7 @@ jobs:
       shell: bash
 
     - name: Configure CMake for Qt6 translations (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform == 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
       run: |
         cd qt6-source\qttranslations
         call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
@@ -721,7 +697,7 @@ jobs:
       shell: cmd
 
     - name: Configure CMake for Qt6 translations (Linux/macOS)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && matrix.platform != 'windows'
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
       run: |
         cd qt6-source/qttranslations
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
@@ -735,7 +711,7 @@ jobs:
     - name: Verify static build
       run: |
         echo "Checking Qt6 static libraries..."
-        if [ "${{ matrix.platform }}" == "windows" ]; then
+        if [ "${{ runner.os }}" == "Windows" ]; then
           win_search_dir="${{ github.workspace }}/qt6-install"
           win_search_dir="${win_search_dir//\\//}"
           find $win_search_dir -name "Qt6*.lib" | head -10
@@ -747,14 +723,14 @@ jobs:
 #------------------------------------- create Qt6 build artifacts to upload
 
     - name: Create build artifact (Linux/macOS)
-      if: matrix.platform != 'windows'
+      if: runner.os != 'Windows'
       run: |
         cd ${{ github.workspace }}
         tar -czf qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.tar.gz -C qt6-install .
       shell: bash
 
     - name: Create build artifact (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         Compress-Archive -Path 'qt6-install\\*' -DestinationPath 'qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.zip' -Force
       shell: pwsh
@@ -786,27 +762,19 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
-            platform: linux
             extension: ""
-            archive_format: tar.gz
-            llvm_version: 15.0.7 # manually overriding to latest version in main for the OS version, see https://ubuntu.com/developers/docs/reference/availability/llvm/
+            llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
           - os: windows-latest
             cpu: intel
-            platform: windows
             extension: .exe
-            archive_format: zip
             llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15
             cpu: arm
-            platform: macos
             extension: ""
-            archive_format: tar.gz
             llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15-intel
             cpu: intel
-            platform: macos
             extension: ""
-            archive_format: tar.gz
             llvm_version: ${{ env.LLVM_VERSION }}
 
     steps:
@@ -816,7 +784,7 @@ jobs:
 #------------------------------------- setup Linux environment
 
     - name: Install dependencies (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -873,13 +841,13 @@ jobs:
 #------------------------------------- setup Windows environment
 
     - name: Install dependencies (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         choco install ninja winflexbison3 ghostscript graphviz.portable innosetup
       shell: bash
 
     - name: Install MikTeX (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: nick-invision/retry@v3
       with:
         timeout_minutes: 15
@@ -890,7 +858,7 @@ jobs:
           if ($?) { echo "C:\Program Files\MiKTeX\miktex\bin\x64" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 }
 
     - name: Configure MikTeX (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         miktex --admin --verbose packages update-package-database
         miktex --admin --verbose packages update
@@ -901,7 +869,7 @@ jobs:
         updmap --admin
 
     - name: Setting Ghostscript paths (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         export GSpath=`find /c/Prog*/gs -name gswin\*c.exe | sed -e "s/gswin.*c.exe//"`
         export PATH="$GSpath:$PATH"
@@ -910,13 +878,13 @@ jobs:
       shell: bash
 
     - name: Refresh Env (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
         refreshenv
 
     - name: Check tool versions (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         echo "=== perl ===";
         perl --version;
@@ -943,7 +911,7 @@ jobs:
 #------------------------------------- setup macOS environment
 
     - name: Install dependencies (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         brew install cmake ninja flex bison ossp-uuid
         # make sure flex and bison from brew are found and not the one from the system.
@@ -955,20 +923,20 @@ jobs:
 #------------------------------------- install Visual Studio compiler
 
     - name: Set up MSVC dev command prompt (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
 #------------------------------------- install HtmlHelp compiler for Windows
 
     - name: Download htmlhelp (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         # curl -L -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
       shell: pwsh
 
     - name: Verify hhc.exe is installed
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       shell: powershell
       run: |
           $possiblePaths = @(
@@ -1000,13 +968,13 @@ jobs:
 #------------------------------------- get and install static libz for Windows
 
     - name: Download zlib (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         curl -L -o zlib.tgz https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       shell: cmd
       run: |
         cd zlib-${{ env.ZLIB_VERSION }}
@@ -1088,7 +1056,7 @@ jobs:
       shell: bash
 
     - name: Extract LLVM artifacts (Linux/macOS)
-      if: matrix.platform != 'windows'
+      if: runner.os != 'Windows'
       run: |
         mkdir -p llvm-install
         ls llvm-artifact
@@ -1097,15 +1065,15 @@ jobs:
         ls llvm-install
       shell: bash
 
-    - name: Remove dynamic library (MacOS)
-      if: matrix.platform == 'macosx'
+    - name: Remove dynamic library (macOS)
+      if: runner.os == 'macOS'
       run: |
         rm llvm-install/lib/libclang.dylib
         rm llvm-install/lib/libclang-cpp.dylib
       shell: bash
 
     - name: Extract LLVM artifacts (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         mkdir llvm-install
         dir llvm-artifact
@@ -1132,7 +1100,7 @@ jobs:
       shell: bash
 
     - name: Extract Qt6 artifacts (Linux/macOS)
-      if: matrix.platform != 'windows'
+      if: runner.os != 'Windows'
       run: |
         mkdir -p qt6-install
         ls qt6-artifact
@@ -1142,7 +1110,7 @@ jobs:
       shell: bash
 
     - name: Extract Qt6 artifacts (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         mkdir qt6-install
         dir qt6-artifact
@@ -1169,7 +1137,7 @@ jobs:
       shell: bash
 
     - name: Extract Xapian artifacts (Linux/macOS)
-      if: matrix.platform != 'windows'
+      if: runner.os != 'Windows'
       run: |
         mkdir -p xapian-install
         ls xapian-artifact
@@ -1179,7 +1147,7 @@ jobs:
       shell: bash
 
     - name: Extract Xapian artifacts (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         mkdir xapian-install
         dir xapian-artifact
@@ -1190,7 +1158,7 @@ jobs:
 #------------------------------------- configure build
 
     - name: Configure CMake for Doxygen (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         mkdir -p doxygen/build
         cd doxygen/build
@@ -1220,7 +1188,7 @@ jobs:
 
 
     - name: Configure CMake for Doxygen (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         mkdir -p doxygen/build
         cd doxygen/build
@@ -1248,7 +1216,7 @@ jobs:
       shell: bash
 
     - name: Configure CMake for Doxygen (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         mkdir doxygen\build
         cd doxygen\build
@@ -1271,7 +1239,7 @@ jobs:
 #------------------------------------- build targets
 
     - name: Build Doxygen (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         cd doxygen/build
         make -j$(nproc)
@@ -1280,21 +1248,21 @@ jobs:
       shell: bash
 
     - name: Build Doxygen (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         cd doxygen/build
         cmake --build . --parallel 2
       shell: bash
 
     - name: Build Doxygen (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         cd doxygen\build
         cmake --build . --parallel
       shell: cmd
 
     - name: Build Doxygen docs (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         cd doxygen\build
         cmake --build . --parallel 1 --target docs
@@ -1302,7 +1270,7 @@ jobs:
       shell: cmd
 
     - name: Install Doxygen (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         cd doxygen\build
         cmake --install .
@@ -1311,7 +1279,7 @@ jobs:
 #------------------------------------- verify build results
 
     - name: Verify Doxygen build (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         echo "Checking Doxygen binary..."
         ls -lh ${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }}
@@ -1320,7 +1288,7 @@ jobs:
       shell: bash
 
     - name: Verify Doxygen build (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         echo "Checking Doxygen binary..."
         ls -lh ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }}
@@ -1330,7 +1298,7 @@ jobs:
 #------------------------------------- create installation artifacts
 
     - name: Prepare executables (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         subst R: ${{ github.workspace }}
         mkdir installer
@@ -1350,7 +1318,7 @@ jobs:
 # SIGNPATH_SIGNING_POLICY_SLUG to 'release-signing', no workflow change required.
 
     - name: Upload unsigned executables (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       id: upload-unsigned-executables
       uses: actions/upload-artifact@v6
       with:
@@ -1363,7 +1331,7 @@ jobs:
         retention-days: 1
 
     - name: Submit executables for signing (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       id: sign-executables
       uses: signpath/github-action-submit-signing-request@v1
       with:
@@ -1377,13 +1345,13 @@ jobs:
         output-artifact-directory: signed/executables
 
     - name: Replace executables with signed ones (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         Copy-Item -Path 'signed\executables\*' -Destination 'doxygen-install\bin' -Force
       shell: powershell
 
     - name: Create installer (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         Write-Host "Using version: '${{ steps.doxygen-version.outputs.version }}'"
         (Get-Content .\windows\doxygen.iss -Raw) -replace '\$VERSION','${{ steps.doxygen-version.outputs.version }}' | Set-Content -Encoding ASCII .\doxygen-versioned.iss
@@ -1410,7 +1378,7 @@ jobs:
       shell: powershell
 
     - name: Upload unsigned installer (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       id: upload-unsigned-installer
       uses: actions/upload-artifact@v6
       with:
@@ -1419,7 +1387,7 @@ jobs:
         retention-days: 1
 
     - name: Submit installer for signing (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       id: sign-installer
       uses: signpath/github-action-submit-signing-request@v1
       with:
@@ -1433,14 +1401,14 @@ jobs:
         output-artifact-directory: signed/installer
 
     - name: Replace installer with signed one (Windows)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       run: |
         Copy-Item -Path 'signed\installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Destination 'installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Force
       shell: powershell
 
 
     - name: Create installer (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         mkdir installer
 
@@ -1461,7 +1429,7 @@ jobs:
       shell: bash
 
     - name: Codesign executable (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       env:
         MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
         MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -1514,7 +1482,7 @@ jobs:
       shell: bash
 
     - name: Create installer continued (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       run: |
         /usr/sbin/diskutil rename image Doxygen
         hdiutil detach image
@@ -1532,7 +1500,7 @@ jobs:
       shell: bash
 
     - name: Notarization and Stapling (macOS)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       env:
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
         MACOS_NOTARIZATION_USER: ${{ secrets.MACOS_NOTARIZATION_USER }}
@@ -1543,7 +1511,7 @@ jobs:
       shell: bash
 
     - name: Create installer (Linux)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       run: |
         VERSION=${{ steps.doxygen-version.outputs.version }}
 
@@ -1591,56 +1559,56 @@ jobs:
 #------------------------------------- upload individual artifacts
 
     - name: Upload Doxygen build (Windows/setup.exe)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe
 
     - name: Upload Doxygen build (Windows/doxygen-x64.zip)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip
 
     - name: Upload Doxygen build (Windows/doxygen_manual.chm)
-      if: matrix.platform == 'windows'
+      if: runner.os == 'Windows'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen_manual-${{ steps.doxygen-version.outputs.version }}.chm.zip
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.chm.zip
 
     - name: Upload Doxygen build (macOS/doxygen.dmg)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       uses: actions/upload-artifact@v6
       with:
         name: Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
         path: installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
 
     - name: Upload Doxygen build (macOS/doxygen-mac.zip)
-      if: matrix.platform == 'macos'
+      if: runner.os == 'macOS'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip
 
     - name: Upload Doxygen build (Linux/doxygen.src.tar.gz)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen-${{ steps.doxygen-version.outputs.version }}.src.tar.gz
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.src.tar.gz
 
     - name: Upload Doxygen build (Linux/doxygen.linux.bin.tar.gz)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen-${{ steps.doxygen-version.outputs.version }}.linux.bin.tar.gz
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.linux.bin.tar.gz
 
     - name: Upload Doxygen build (Linux/doxygen_manual.pdf.zip)
-      if: matrix.platform == 'linux'
+      if: runner.os == 'Linux'
       uses: actions/upload-artifact@v6
       with:
         name: doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
