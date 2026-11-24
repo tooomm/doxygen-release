@@ -18,7 +18,7 @@ permissions:
 env:
   BUILD_TYPE: Release
   XAPIAN_VERSION: 2.1.0
-  QT6_VERSION: 6.11.3
+  QT6_VERSION: 6.10.3
   ZLIB_VERSION: 1.4
   # SignPath (https://signpath.io) is used to code sign the Windows executables.
   # These values identify the SignPath organization/project/artifact-configuration
