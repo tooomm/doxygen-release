@@ -17,7 +17,7 @@ permissions:
 
 env:
   BUILD_TYPE: Release
-  LLVM_VERSION: 23.1.4
+  # LLVM_VERSION is defined in the job matrix, Ubuntu has only older versions available in main
   QT6_VERSION: 6.10.3
   XAPIAN_VERSION: 2.1.0
   ZLIB_VERSION: 1.4
@@ -49,19 +49,19 @@ jobs:
           - os: ubuntu-22.04
             cpu: intel
             archive_format: tar.gz
-            llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
+            llvm_version: 15.0.7
           - os: windows-latest
             cpu: intel
             archive_format: zip
-            llvm_version: ${{ env.LLVM_VERSION }}
+            llvm_version: 23.1.4
           - os: macos-15
             cpu: arm
             archive_format: tar.gz
-            llvm_version: ${{ env.LLVM_VERSION }}
+            llvm_version: 23.1.4
           - os: macos-15-intel
             cpu: intel
             archive_format: tar.gz
-            llvm_version: ${{ env.LLVM_VERSION }}
+            llvm_version: 23.1.4
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -763,19 +763,19 @@ jobs:
           - os: ubuntu-22.04
             cpu: intel
             extension: ""
-            llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
+            llvm_version: 15.0.7
           - os: windows-latest
             cpu: intel
             extension: .exe
-            llvm_version: ${{ env.LLVM_VERSION }}
+            llvm_version: 23.1.4
           - os: macos-15
             cpu: arm
             extension: ""
-            llvm_version: ${{ env.LLVM_VERSION }}
+            llvm_version: 23.1.4
           - os: macos-15-intel
             cpu: intel
             extension: ""
-            llvm_version: ${{ env.LLVM_VERSION }}
+            llvm_version: 23.1.4
 
     steps:
     - name: Checkout repository
