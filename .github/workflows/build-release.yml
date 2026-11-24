@@ -50,6 +50,10 @@ jobs:
             cpu: intel
             archive_format: tar.gz
             llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
+          - os: ubuntu-22.04-arm
+            cpu: arm
+            archive_format: tar.gz
+            llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
           - os: windows-latest
             cpu: intel
             archive_format: zip
@@ -265,6 +269,9 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
+            archive_format: tar.gz
+          - os: ubuntu-22.04-arm
+            cpu: arm
             archive_format: tar.gz
           - os: windows-latest
             cpu: intel
@@ -485,6 +492,9 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
+            archive_format: tar.gz
+          - os: ubuntu-22.04-arm
+            cpu: arm
             archive_format: tar.gz
           - os: windows-latest
             cpu: intel
@@ -762,6 +772,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             cpu: intel
+            extension: ""
+            llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
+          - os: ubuntu-22.04-arm
+            cpu: arm
             extension: ""
             llvm_version: 15.0.7 # manually overriding to latest version in main for the runner OS, see https://ubuntu.com/developers/docs/reference/availability/llvm/
           - os: windows-latest
