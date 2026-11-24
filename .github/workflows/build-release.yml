@@ -18,9 +18,10 @@ permissions:
 env:
   BUILD_TYPE: Release
   # LLVM_VERSION is defined in the LLVM and Doxygen job matrices as Ubuntu has only older versions available in main
-  QT6_VERSION: 6.10.3
-  XAPIAN_VERSION: 2.1.0
-  ZLIB_VERSION: 1.4
+  # See https://ubuntu.com/developers/docs/reference/availability/llvm/ and https://releases.llvm.org/
+  QT6_VERSION: 6.12.1   # https://wiki.qt.io/Qt_6.12_Release
+  XAPIAN_VERSION: 2.1.0 # https://xapian.org/
+  ZLIB_VERSION: 1.4     # https://www.zlib.net/
   # SignPath (https://signpath.io) is used to code sign the Windows executables.
   # These values identify the SignPath organization/project/artifact-configuration
   # and can be overridden via repository variables, no workflow changes needed.
@@ -46,11 +47,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-26.04
             cpu: intel
             archive_format: tar.gz
-            llvm_version: 15.0.7
-          - os: windows-latest
+            llvm_version: 21.1.6
+          - os: windows-2025
             cpu: intel
             archive_format: zip
             llvm_version: 23.1.4
@@ -263,10 +264,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-26.04
             cpu: intel
             archive_format: tar.gz
-          - os: windows-latest
+          - os: windows-2025
             cpu: intel
             archive_format: zip
           - os: macos-15
@@ -483,10 +484,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-26.04
             cpu: intel
             archive_format: tar.gz
-          - os: windows-latest
+          - os: windows-2025
             cpu: intel
             archive_format: zip
           - os: macos-15
@@ -760,11 +761,11 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-22.04
+          - os: ubuntu-26.04
             cpu: intel
             extension: ""
-            llvm_version: 15.0.7
-          - os: windows-latest
+            llvm_version: 21.1.6
+          - os: windows-2025
             cpu: intel
             extension: .exe
             llvm_version: 23.1.4
