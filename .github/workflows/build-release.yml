@@ -20,6 +20,7 @@ env:
   XAPIAN_VERSION: 2.1.0
   QT6_VERSION: 6.10.3
   ZLIB_VERSION: 1.4
+  LLVM_VERSION: 23.1.4
   # SignPath (https://signpath.io) is used to code sign the Windows executables.
   # These values identify the SignPath organization/project/artifact-configuration
   # and can be overridden via repository variables, no workflow changes needed.
@@ -50,25 +51,25 @@ jobs:
             platform: linux
             extension: ""
             archive_format: tar.gz
-            llvm_version: 15.0.7
+            llvm_version: 15.0.7 # manually overriding to latest version in main for the OS version, see https://ubuntu.com/developers/docs/reference/availability/llvm/
           - os: windows-latest
             cpu: intel
             platform: windows
             extension: .exe
             archive_format: zip
-            llvm_version: 23.1.4
+            llvm_version: {{ env.LLVM_VERSION }}
           - os: macos-15
             cpu: arm
             platform: macos
             extension: ""
             archive_format: tar.gz
-            llvm_version: 23.1.4
+            llvm_version: {{ env.LLVM_VERSION }}
           - os: macos-15-intel
             cpu: intel
             platform: macos
             extension: ""
             archive_format: tar.gz
-            llvm_version: 23.1.4
+            llvm_version: {{ env.LLVM_VERSION }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
