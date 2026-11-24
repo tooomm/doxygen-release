@@ -57,19 +57,19 @@ jobs:
             platform: windows
             extension: .exe
             archive_format: zip
-            llvm_version: {{ env.LLVM_VERSION }}
+            llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15
             cpu: arm
             platform: macos
             extension: ""
             archive_format: tar.gz
-            llvm_version: {{ env.LLVM_VERSION }}
+            llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15-intel
             cpu: intel
             platform: macos
             extension: ""
             archive_format: tar.gz
-            llvm_version: {{ env.LLVM_VERSION }}
+            llvm_version: ${{ env.LLVM_VERSION }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -789,25 +789,25 @@ jobs:
             platform: linux
             extension: ""
             archive_format: tar.gz
-            llvm_version: 15.0.7
+            llvm_version: 15.0.7 # manually overriding to latest version in main for the OS version, see https://ubuntu.com/developers/docs/reference/availability/llvm/
           - os: windows-latest
             cpu: intel
             platform: windows
             extension: .exe
             archive_format: zip
-            llvm_version: 21.1.5
+            llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15
             cpu: arm
             platform: macos
             extension: ""
             archive_format: tar.gz
-            llvm_version: 21.1.5
+            llvm_version: ${{ env.LLVM_VERSION }}
           - os: macos-15-intel
             cpu: intel
             platform: macos
             extension: ""
             archive_format: tar.gz
-            llvm_version: 21.1.5
+            llvm_version: ${{ env.LLVM_VERSION }}
 
     steps:
     - name: Checkout repository
@@ -1074,7 +1074,7 @@ jobs:
     - name: Download LLVM artifacts
       uses: actions/download-artifact@v7
       with:
-        name: llvm-static-${{ matrix.llvm_versioN }}-${{ matrix.os }}
+        name: llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}
         path: llvm-artifact
 
     - name: Extract LLVM version from artifact
