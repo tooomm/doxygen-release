@@ -17,7 +17,7 @@ permissions:
 
 env:
   BUILD_TYPE: Release
-  # LLVM_VERSION is defined in the job matrix, Ubuntu has only older versions available in main
+  # LLVM_VERSION is defined in the LLVM and Doxygen job matrices as Ubuntu has only older versions available in main
   QT6_VERSION: 6.10.3
   XAPIAN_VERSION: 2.1.0
   ZLIB_VERSION: 1.4
