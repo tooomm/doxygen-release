@@ -89,7 +89,8 @@ jobs:
   build-llvm:
     name: LLVM (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: [delete-caches]
+    needs:
+      - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
     strategy:
       fail-fast: false
@@ -535,7 +536,8 @@ jobs:
   build-qt6:
     name: Qt6 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: [delete-caches]
+    needs:
+      - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
     strategy:
       fail-fast: false
@@ -812,7 +814,10 @@ jobs:
   build-doxygen:
     name: Doxygen (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
-    needs: [build-llvm, build-xapian, build-qt6]
+    needs:
+      - 'build-llvm'
+      - 'build-xapian'
+      - 'build-qt6'
     # 'actions: read' is required by the SignPath GitHub Action to download the
     # unsigned artifact that gets submitted for code signing (Windows only).
     permissions:
