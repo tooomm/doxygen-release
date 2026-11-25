@@ -313,6 +313,9 @@ jobs:
   build-xapian:
     name: Xapian (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs:
+      - 'delete-caches'
+    if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
