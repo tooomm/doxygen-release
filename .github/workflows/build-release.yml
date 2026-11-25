@@ -1080,13 +1080,6 @@ jobs:
         ls llvm-install
       shell: bash
 
-    - name: Remove dynamic library (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        rm llvm-install/lib/libclang.dylib
-        rm llvm-install/lib/libclang-cpp.dylib
-      shell: bash
-
     - name: Extract LLVM artifacts (Windows)
       if: runner.os == 'Windows'
       run: |
