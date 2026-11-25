@@ -1,14 +1,25 @@
 on:
   workflow_dispatch:
     inputs:
-      git_source_version:
-        description: 'Use latest tagged release or latest master?'
+      doxygen_source_version:
+        description: 'Use latest tagged release of Doxygen, or master branch?'
         required: true
         default: 'tagged'
         type: choice
         options:
           - 'tagged'
           - 'master'
+      rebuild_caches:
+        description: 'Rebuild dependency caches from source'
+        required: false
+        default: false
+        type: boolean
+  pull_request:
+    branches:
+      - 'main'
+  # Weekly scheduled run to keep caches warm
+  schedule:
+    - cron: '0 6 * * 6'
 
 name: Create Doxygen Release
 
@@ -38,11 +49,48 @@ env:
 jobs:
 
 #===============================================================
+# DELETE CACHES JOB
+#===============================================================
+
+  delete-caches:
+    name: Delete cached dependencies
+    runs-on: ubuntu-slim
+    if: github.event_name == 'workflow_dispatch' && inputs.rebuild_caches == true
+    # 'actions: write' permission is required to clear caches
+    permissions:
+      actions: write
+
+    steps:
+      - name: Delete dependency caches
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          gh api --paginate --jq '
+            .actions_caches[]
+            | select(
+                .key | startswith("llvm-")
+                or startswith("qt6-")
+              )
+            | .id
+          ' "repos/$GH_REPO/actions/caches" |
+          while read -r cache_id; do
+            echo "Deleting cache $cache_id"
+            gh api --method DELETE "repos/$GH_REPO/actions/caches/$cache_id"
+          done
+
+#===============================================================
 # LLVM JOB
 #===============================================================
+
   build-llvm:
     name: LLVM (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: [delete-caches]
+    if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -92,7 +140,7 @@ jobs:
       shell: bash
 
 #------------------------------------- setup Windows environment for LLVM
-#
+
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -487,6 +535,8 @@ jobs:
   build-qt6:
     name: Qt6 (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: [delete-caches]
+    if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
     strategy:
       fail-fast: false
       matrix:
@@ -758,6 +808,7 @@ jobs:
 #===============================================================
 # DOXYGEN JOB
 #===============================================================
+
   build-doxygen:
     name: Doxygen (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
