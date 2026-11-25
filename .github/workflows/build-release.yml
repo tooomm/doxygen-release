@@ -1421,10 +1421,10 @@ jobs:
 
         # create DMG file
         mkdir image
-        bunzip2 -k macosx/template.sparseimage.bz2
-        hdiutil attach macosx/template.sparseimage -noautoopen -quiet -mountpoint image
-        cp -a macosx/Doxygen.app image
-        #cp -a macosx/Readme.rtf image
+        bunzip2 -k macos/template.sparseimage.bz2
+        hdiutil attach macos/template.sparseimage -noautoopen -quiet -mountpoint image
+        cp -a macos/Doxygen.app image
+        #cp -a macos/Readme.rtf image
         mkdir -p image/Doxygen.app/Contents/MacOS
         sed -i -e "s/\$VERSION/${{ steps.doxygen-version.outputs.version }}/g" image/Doxygen.app/Contents/Info.plist
         cp doxygen/build/bin/doxygen        image/Doxygen.app/Contents/Resources
@@ -1494,7 +1494,7 @@ jobs:
         /usr/sbin/diskutil rename image Doxygen
         hdiutil detach image
 
-        hdiutil convert -format UDCO -o installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg macosx/template.sparseimage
+        hdiutil convert -format UDCO -o installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg macos/template.sparseimage
         xattr -c installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
 
         # create zip with binaries
