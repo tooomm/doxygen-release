@@ -59,11 +59,11 @@ jobs:
             cpu: intel
             archive_format: zip
             llvm_version: 23.1.4
-          - os: macos-15
+          - os: macos-15 # why does webpage claim compatibility down to macOS 13 when all deps & Doxygen itself are build with macOS 15? https://www.doxygen.nl/download.html
             cpu: arm
             archive_format: tar.gz
             llvm_version: 23.1.4
-          - os: macos-15-intel
+          - os: macos-15-intel # why does webpage claim compatibility down to macOS 13 when all deps & Doxygen itself are build with macOS 15? https://www.doxygen.nl/download.html
             cpu: intel
             archive_format: tar.gz
             llvm_version: 23.1.4
