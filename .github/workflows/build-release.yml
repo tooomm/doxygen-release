@@ -51,6 +51,10 @@ jobs:
             cpu: intel
             archive_format: tar.gz
             llvm_version: 21.1.6
+          - os: ubuntu-26.04-arm
+            cpu: intel
+            archive_format: tar.gz
+            llvm_version: 21.1.6
           - os: windows-2025
             cpu: intel
             archive_format: zip
@@ -265,6 +269,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-26.04
+            cpu: intel
+            archive_format: tar.gz
+          - os: ubuntu-26.04-arm
             cpu: intel
             archive_format: tar.gz
           - os: windows-2025
@@ -485,6 +492,9 @@ jobs:
       matrix:
         include:
           - os: ubuntu-26.04
+            cpu: intel
+            archive_format: tar.gz
+          - os: ubuntu-26.04-arm
             cpu: intel
             archive_format: tar.gz
           - os: windows-2025
@@ -762,6 +772,10 @@ jobs:
       matrix:
         include:
           - os: ubuntu-26.04
+            cpu: intel
+            extension: ""
+            llvm_version: 21.1.6
+          - os: ubuntu-26.04-arm
             cpu: intel
             extension: ""
             llvm_version: 21.1.6
