@@ -204,7 +204,7 @@ jobs:
         mkdir -p llvm-project/build
         cd llvm-project/build
         cmake ../llvm \
-          -G "Unix Makefiles" \
+          -G Ninja \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
           -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/llvm-install \
           -DLLVM_ENABLE_PROJECTS="clang;lld" \
@@ -225,8 +225,7 @@ jobs:
           -DLLVM_LINK_LLVM_DYLIB=OFF \
           -DLIBCLANG_BUILD_STATIC=ON \
           -DCLANG_LINK_CLANG_DYLIB=OFF \
-          ${{ matrix.cmake_args }}
-          cmake --build . --parallel 2
+          cmake --build . --parallel
           cmake --install .
       shell: bash
 
@@ -264,7 +263,7 @@ jobs:
           -DLLVM_USE_CRT_RELEASE=MT ^
           -DLLVM_TARGETS_TO_BUILD="X86;AArch64" ^
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
-        cmake --build . --parallel 2
+        cmake --build . --parallel
         cmake --install .
       shell: cmd
 
@@ -1238,7 +1237,7 @@ jobs:
         UUID_FLAG="-DUUID_LIB=${UUID_LIB}"
         echo "Using libuuid: $UUID_LIB"
         echo "UUID_FLAG=$UUID_FLAG"
-        cmake .. -G "Unix Makefiles" \
+        cmake .. -G Ninja \
           -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
           -DXAPIAN_LIBRARIES="${{ github.workspace }}/xapian-install/lib/libxapian.a" \
@@ -1268,7 +1267,7 @@ jobs:
         cd doxygen/build
         UUID_FLAG="-DUUID_LIB=$(brew --prefix ossp-uuid)/lib/libuuid.a"
         echo "UUID_FLAG=$UUID_FLAG"
-        cmake .. -G "Unix Makefiles" \
+        cmake .. -G Ninja \
           -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
           -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
           -DXAPIAN_LIBRARIES="${{ github.workspace }}/xapian-install/lib/libxapian.a" \
@@ -1294,7 +1293,15 @@ jobs:
       run: |
         mkdir doxygen\build
         cd doxygen\build
-        cmake .. -G "Ninja" -Dwin_static=YES -Dbuild_search=YES -Dbuild_wizard=YES -Duse_libclang=YES -Dstatic_libclang=YES -Dforce_qt=Qt6 -Dbuild_doc=YES -Dbuild_doc_chm=YES ^
+        cmake .. -G Ninja ^
+              -Dwin_static=YES ^
+              -Dbuild_search=YES ^
+              -Dbuild_wizard=YES ^
+              -Duse_libclang=YES ^
+              -Dstatic_libclang=YES ^
+              -Dforce_qt=Qt6 ^
+              -Dbuild_doc=YES ^
+              -Dbuild_doc_chm=YES ^
               -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
               -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}\doxygen-install ^
               -DXAPIAN_LIBRARIES=${{ github.workspace }}\xapian-install\lib\xapian.lib ^
@@ -1325,7 +1332,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         cd doxygen/build
-        cmake --build . --parallel 2
+        cmake --build . --parallel
       shell: bash
 
     - name: Build Doxygen (Windows)
@@ -1339,8 +1346,8 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         cd doxygen\build
-        cmake --build . --parallel 1 --target docs
-        cmake --build . --parallel 1 --target docs_chm
+        cmake --build . --parallel 2 --target docs
+        cmake --build . --parallel 2 --target docs_chm
       shell: cmd
 
     - name: Install Doxygen (Windows)
