@@ -1339,7 +1339,7 @@ jobs:
         retention-days: 1
 
     - name: Submit executables for signing (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
       id: sign-executables
       uses: signpath/github-action-submit-signing-request@v1
       with:
@@ -1353,7 +1353,7 @@ jobs:
         output-artifact-directory: signed/executables
 
     - name: Replace executables with signed ones (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
       run: |
         Copy-Item -Path 'signed\executables\*' -Destination 'doxygen-install\bin' -Force
       shell: powershell
@@ -1395,7 +1395,7 @@ jobs:
         retention-days: 1
 
     - name: Submit installer for signing (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
       id: sign-installer
       uses: signpath/github-action-submit-signing-request@v1
       with:
@@ -1409,11 +1409,10 @@ jobs:
         output-artifact-directory: signed/installer
 
     - name: Replace installer with signed one (Windows)
-      if: runner.os == 'Windows'
+      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
       run: |
         Copy-Item -Path 'signed\installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Destination 'installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Force
       shell: powershell
-
 
     - name: Create installer (macOS)
       if: runner.os == 'macOS'
@@ -1437,7 +1436,7 @@ jobs:
       shell: bash
 
     - name: Codesign executable (macOS)
-      if: runner.os == 'macOS'
+      if: runner.os == 'macOS' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
       env:
         MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
         MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -1508,7 +1507,7 @@ jobs:
       shell: bash
 
     - name: Notarization and Stapling (macOS)
-      if: runner.os == 'macOS'
+      if: runner.os == 'macOS' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
       env:
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
         MACOS_NOTARIZATION_USER: ${{ secrets.MACOS_NOTARIZATION_USER }}
