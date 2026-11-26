@@ -770,6 +770,7 @@ jobs:
       - 'build-llvm'
       - 'build-xapian'
       - 'build-qt6'
+    if: ${{ !cancelled() && needs.build-llvm.result == 'success' && needs.build-xapian.result == 'success' && needs.build-qt6.result == 'success' }}
     # 'actions: read' is required by the SignPath GitHub Action to download the
     # unsigned artifact that gets submitted for code signing (Windows only).
     permissions:
@@ -1346,7 +1347,7 @@ jobs:
         retention-days: 1
 
     - name: Submit executables for signing (Windows)
-      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
+      if: runner.os == 'Windows' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
       id: sign-executables
       uses: signpath/github-action-submit-signing-request@v1
       with:
@@ -1360,7 +1361,7 @@ jobs:
         output-artifact-directory: signed/executables
 
     - name: Replace executables with signed ones (Windows)
-      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
+      if: runner.os == 'Windows' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
       run: |
         Copy-Item -Path 'signed\executables\*' -Destination 'doxygen-install\bin' -Force
       shell: powershell
@@ -1402,7 +1403,7 @@ jobs:
         retention-days: 1
 
     - name: Submit installer for signing (Windows)
-      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
+      if: runner.os == 'Windows' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
       id: sign-installer
       uses: signpath/github-action-submit-signing-request@v1
       with:
@@ -1416,7 +1417,7 @@ jobs:
         output-artifact-directory: signed/installer
 
     - name: Replace installer with signed one (Windows)
-      if: runner.os == 'Windows' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
+      if: runner.os == 'Windows' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
       run: |
         Copy-Item -Path 'signed\installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Destination 'installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Force
       shell: powershell
@@ -1443,7 +1444,7 @@ jobs:
       shell: bash
 
     - name: Codesign executable (macOS)
-      if: runner.os == 'macOS' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
+      if: runner.os == 'macOS' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
       env:
         MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
         MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -1514,7 +1515,7 @@ jobs:
       shell: bash
 
     - name: Notarization and Stapling (macOS)
-      if: runner.os == 'macOS' && github.repository_owner == 'doxygen-release' # Do not run signing step on forks
+      if: runner.os == 'macOS' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
       env:
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
         MACOS_NOTARIZATION_USER: ${{ secrets.MACOS_NOTARIZATION_USER }}
