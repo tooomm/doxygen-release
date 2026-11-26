@@ -1122,12 +1122,7 @@ jobs:
         echo "Using libuuid: $UUID_LIB"
         echo "UUID_FLAG=$UUID_FLAG"
 
-        cmake .. x \
-
-        mkdir -p doxygen/build
-        cd doxygen/build
-        -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
-
+        cmake -S doxygen -B doxygen/build \
           -G Ninja \
           -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
           -DXAPIAN_LIBRARIES="${{ github.workspace }}/xapian-install/lib/libxapian.a" \
@@ -1155,13 +1150,7 @@ jobs:
         UUID_FLAG="-DUUID_LIB=$(brew --prefix ossp-uuid)/lib/libuuid.a"
         echo "UUID_FLAG=$UUID_FLAG"
 
-        cmake .. x \
-
-        mkdir -p doxygen/build
-        cd doxygen/build
-        -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
-
-
+        cmake -S doxygen -B doxygen/build \
           -G Ninja \
           -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
           -DXAPIAN_LIBRARIES="${{ github.workspace }}/xapian-install/lib/libxapian.a" \
@@ -1185,12 +1174,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        cmake .. x ^
-
-        mkdir -p doxygen/build
-        cd doxygen/build
-        -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\doxygen-install"
-
+        cmake -S doxygen -B doxygen/build ^
           -G Ninja ^
           -Dwin_static=YES ^
           -Dbuild_search=YES ^
@@ -1228,14 +1212,14 @@ jobs:
       run: |
         cd doxygen/build
         cmake --build . --parallel 2 --target docs
-        cmake --build . --parallel 2 --target docs_chm
+        cmake --build . --parallel 2 --target docs_chm    # do they run in parallel or can the core limitation be removed?
 
     - name: Install Doxygen (Linux)
       if: runner.os == 'Linux'
       shell: bash
       run: |
         cd doxygen/build
-        cmake --install .
+        cmake --install . --path doxygen-install
 
     - name: Build Doxygen (macOS)
       if: runner.os == 'macOS'
@@ -1249,7 +1233,7 @@ jobs:
       shell: bash
       run: |
         cd doxygen/build
-        cmake --install .
+        cmake --install . --path doxygen-install
 
     - name: Build Doxygen (Windows)
       if: runner.os == 'Windows'
@@ -1271,7 +1255,7 @@ jobs:
       shell: cmd
       run: |
         cd doxygen\build
-        cmake --install .
+        cmake --install . --path doxygen-install
 
 #------------------------------------- Verify Doxygen build results
 
