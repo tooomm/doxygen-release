@@ -134,6 +134,12 @@ jobs:
           libtinfo-dev
       shell: bash
 
+#------------------------------------- setup Windows environment for LLVM
+
+    - name: Set up MSVC dev command prompt (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
 #------------------------------------- determine LLVM version to use
 
     - name: Get latest LLVM release tag
@@ -206,10 +212,6 @@ jobs:
           cmake --build . --parallel
           cmake --install .
       shell: bash
-
-    - name: Set up MSVC dev command prompt (Windows)
-      if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Configure CMake for LLVM (Windows)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
@@ -802,7 +804,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-#------------------------------------- setup Linux environment
+#------------------------------------- setup Linux environment for Doxygen
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
@@ -851,7 +853,11 @@ jobs:
           graphviz
       shell: bash
 
-#------------------------------------- setup Windows environment
+#------------------------------------- setup Windows environment for Doxygen
+
+    - name: Set up MSVC dev command prompt (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
@@ -915,7 +921,7 @@ jobs:
         gswin64c --version;
       shell: bash
 
-#------------------------------------- setup macOS environment
+#------------------------------------- setup macOS environment for Doxygen
 
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
@@ -926,12 +932,6 @@ jobs:
         echo "$(brew --prefix flex)/bin" >> $GITHUB_PATH
         echo "LOC=$(brew --prefix ossp-uuid)"
       shell: bash
-
-#------------------------------------- install Visual Studio compiler
-
-    - name: Set up MSVC dev command prompt (Windows)
-      if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
 
 #------------------------------------- install HtmlHelp compiler for Windows
 
