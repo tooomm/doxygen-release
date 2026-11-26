@@ -164,7 +164,7 @@ jobs:
         cd llvm-project
         git sparse-checkout set --progress llvm
 
-#------------------------------------- Configure build system for LLVM + compile
+#------------------------------------- Configure LLVM build system for Linux/macOS + compile
 
     - name: Configure LLVM build (Linux/macOS)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
@@ -199,6 +199,8 @@ jobs:
           cd llvm-project/build
           cmake --build . --parallel
           cmake --install . --prefix llvm-install
+
+#------------------------------------- Configure LLVM build system for Windows + compile
 
     - name: Configure LLVM build (Windows)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
@@ -489,6 +491,9 @@ jobs:
     needs:
       - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
+
+#------------------------------------- Job matrix for Qt6
+
     strategy:
       fail-fast: false
       matrix:
@@ -508,14 +513,18 @@ jobs:
           - os: macos-15-intel
             cpu: intel
             archive_format: tar.gz
+
+#------------------------------------- Job steps for Qt6
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-#------------------------------------- setup Linux environment for Qt6
+#------------------------------------- Setup Linux environment for Qt6
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -546,67 +555,52 @@ jobs:
           libxkbcommon-x11-dev \
           libgl1-mesa-dev \
           libglu1-mesa-dev
-      shell: bash
 
-#------------------------------------- setup Windows environment for Qt6
+#------------------------------------- Setup Windows environment for Qt6
 
     - name: Set up MSVC dev command prompt (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
-#------------------------------------- determine Qt6 version to use
-
-    - name: Set Qt6 version
-      id: qt6-version
-      run: |
-        # Using a fixed Qt6 version for stability
-        # Update this version when a new Qt6 is released
-        VERSION="${{ env.QT6_VERSION }}"
-        echo "Qt6 version: $VERSION"
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-      shell: bash
-
-#------------------------------------- download Qt6 sources
+#------------------------------------- Restore Qt6 installation output, or download source to build Qt6
 
     - name: Cache Qt6 install
       id: cache-qt6-install
       uses: actions/cache@v4
       with:
         path: qt6-install
-        key: qt6-install-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}
+        key: qt6-install-${{ env.QT6_VERSION }}-${{ matrix.os }}
 
     - name: Download Qt6 source code
       if: steps.cache-qt6-install.outputs.cache-hit != 'true'
+      shell: bash
       run: |
-        echo "Downloading Qt6 ${{ steps.qt6-version.outputs.version }}"
-        VERSION="${{ steps.qt6-version.outputs.version }}"
+        VERSION="$QT6_VERSION"
         MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
-        BASE_URL="https://download.qt.io/official_releases/qt/${MAJOR_MINOR}/{$VERSION}/submodules"
+        BASE_URL="https://download.qt.io/official_releases/qt/${MAJOR_MINOR}/${VERSION}/submodules"
         ARCHIVE_APPENDIX="everywhere-src-${VERSION}.tar.xz"
-
-        # Download qtbase
         mkdir -p qt6-source
         cd qt6-source
 
-        echo "Downloading qtbase..."
+        echo "Downloading qtbase module..."
         curl -fL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-$ARCHIVE_APPENDIX"
         tar -xf qtbase.tar.xz
         mv qtbase-everywhere-src-$VERSION qtbase
         rm qtbase.tar.xz
 
-        echo "Downloading qtsvg..."
+        echo "Downloading qtsvg module..."
         curl -fL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-$ARCHIVE_APPENDIX"
         tar -xf qtsvg.tar.xz
         mv qtsvg-everywhere-src-$VERSION qtsvg
         rm qtsvg.tar.xz
 
-        echo "Downloading qttranslations..."
+        echo "Downloading qttranslations module..."
         curl -fL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-$ARCHIVE_APPENDIX"
         tar -xf qttranslations.tar.xz
         mv qttranslations-everywhere-src-$VERSION qttranslations
         rm qttranslations.tar.xz
 
-        echo "Downloading qttools..."
+        echo "Downloading qttools module..."
         curl -fL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-$ARCHIVE_APPENDIX"
         tar -xf qttools.tar.xz
         mv qttools-everywhere-src-$VERSION qttools
@@ -617,93 +611,93 @@ jobs:
           exit 1
         fi
         echo "Qt6 source downloaded successfully"
-      shell: bash
 
-#------------------------------------- configure Qt6 for building
-
-    - name: Configure CMake for Qt6 Base (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      run: |
-        cd qt6-source\qtbase
-        call configure.bat -static -static-runtime -release -prefix ${{ github.workspace }}\qt6-install -platform win32-msvc -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -sql-odbc -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
-        cmake --build . --parallel
-        cmake --install .
-      shell: cmd
+#------------------------------------- Configure Qt6 build system for Linux/macOS + compile
 
     - name: Configure CMake for Qt6 Base (Linux)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Linux'
+      shell: bash
       run: |
         cd qt6-source/qtbase
         ./configure -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform linux-g++-64 -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
         cmake --build . --parallel
         cmake --install .
-      shell: bash
 
     - name: Configure CMake for Qt6 Base (macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'macOS'
+      shell: bash
       run: |
         cd qt6-source/qtbase
         ./configure -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform macx-clang -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
         cmake --build . --parallel
         cmake --install .
-      shell: bash
-
-    - name: Configure CMake for Qt6 tools (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      run: |
-        cd qt6-source\qttools
-        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
-        cmake --build . --parallel
-        cmake --install .
-      shell: cmd
 
     - name: Configure CMake for Qt6 tools (Linux/macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
         cd qt6-source/qttools
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
         cmake --build . --parallel
         cmake --install .
-      shell: bash
-
-    - name: Configure CMake for Qt6 SVG (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      run: |
-        cd qt6-source\qtsvg
-        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
-        cmake --build . --parallel
-        cmake --install .
-      shell: cmd
 
     - name: Configure CMake for Qt6 SVG (Linux/macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os!= 'Windows'
+      shell: bash
       run: |
         cd qt6-source/qtsvg
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
         cmake --build . --parallel
         cmake --install .
-      shell: bash
-
-    - name: Configure CMake for Qt6 translations (Windows)
-      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      run: |
-        cd qt6-source\qttranslations
-        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
-        cmake --build . --parallel
-        cmake --install .
-      shell: cmd
 
     - name: Configure CMake for Qt6 translations (Linux/macOS)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
         cd qt6-source/qttranslations
         ${{ github.workspace }}/qt6-install/bin/qt-configure-module .
         cmake --build . --parallel
         cmake --install .
-      shell: bash
 
+#------------------------------------- Configure Qt6 build system for Windows + compile
 
-#------------------------------------- verify Qt6 build results
+    - name: Configure CMake for Qt6 Base (Windows)
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd qt6-source\qtbase
+        call configure.bat -static -static-runtime -release -prefix ${{ github.workspace }}\qt6-install -platform win32-msvc -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -sql-odbc -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
+        cmake --build . --parallel
+        cmake --install .
+
+    - name: Configure CMake for Qt6 tools (Windows)
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd qt6-source\qttools
+        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
+        cmake --build . --parallel
+        cmake --install .
+
+    - name: Configure CMake for Qt6 SVG (Windows)
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd qt6-source\qtsvg
+        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
+        cmake --build . --parallel
+        cmake --install .
+
+    - name: Configure CMake for Qt6 translations (Windows)
+      if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd qt6-source\qttranslations
+        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
+        cmake --build . --parallel
+        cmake --install .
+
+#------------------------------------- Verify Qt6 build results
 
     - name: Verify static build
       run: |
@@ -717,32 +711,29 @@ jobs:
         fi
       shell: bash
 
-#------------------------------------- create Qt6 build artifacts to upload
+#------------------------------------- Create Qt6 build artifacts to upload
 
     - name: Create build artifact (Linux/macOS)
       if: runner.os != 'Windows'
-      run: |
-        cd ${{ github.workspace }}
-        tar -czf qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.tar.gz -C qt6-install .
       shell: bash
+      run: tar -czf qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}.tar.gz -C qt6-install .
 
     - name: Create build artifact (Windows)
       if: runner.os == 'Windows'
-      run: |
-        Compress-Archive -Path 'qt6-install\\*' -DestinationPath 'qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.zip' -Force
       shell: pwsh
+      run: Compress-Archive -Path 'qt6-install\\*' -DestinationPath 'qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}.zip' -Force
 
-#------------------------------------- upload the Qt6 build artifacts
+#------------------------------------- Upload the Qt6 build artifacts
 
     - name: Upload Qt6 static build
       uses: actions/upload-artifact@v6
       with:
-        name: qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}
-        path: qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.${{ matrix.archive_format }}
+        name: qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}
+        path: qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}.${{ matrix.archive_format }}
         retention-days: 30
 
 #===============================================================
-# DOXYGEN JOB
+# Stage 2: Doxygen
 #===============================================================
 
   build-doxygen:
@@ -758,6 +749,9 @@ jobs:
     permissions:
       contents: read
       actions: read
+
+#------------------------------------- Job matrix for Doxygen
+
     strategy:
       fail-fast: false
       matrix:
@@ -783,11 +777,13 @@ jobs:
             extension: ""
             llvm_version: 23.1.4
 
+#------------------------------------- Job steps for Doxygen
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-#------------------------------------- setup Linux environment for Doxygen
+#------------------------------------- Setup Linux environment for Doxygen
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
