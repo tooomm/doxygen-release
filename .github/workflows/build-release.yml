@@ -1194,7 +1194,6 @@ jobs:
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/llvm-install;${{ github.workspace }}/qt6-install;${{ github.workspace }}/xapian-install"
       shell: bash
 
-
     - name: Configure CMake for Doxygen (macOS)
       if: runner.os == 'macOS'
       run: |
@@ -1258,9 +1257,10 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         cd doxygen/build
-        make -j$(nproc)
-        make docs
-        make install
+        cmake --build . --parallel
+        cmake --build . --parallel 2 --target docs
+        cmake --build . --parallel 2 --target docs_chm
+        cmake --install .
       shell: bash
 
     - name: Build Doxygen (macOS)
