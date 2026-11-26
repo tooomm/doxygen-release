@@ -127,33 +127,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          build-essential \
-          cmake \
-          ninja-build \
-          git \
-          python3 \
-          python3-pip \
           zlib1g-dev \
           libedit-dev \
           libffi-dev \
           libxml2-dev \
           libtinfo-dev
-      shell: bash
-
-#------------------------------------- setup Windows environment for LLVM
-
-    - name: Install dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        choco install ninja
-      shell: bash
-
-#------------------------------------- setup macOS environment for LLVM
-
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install cmake ninja
       shell: bash
 
 #------------------------------------- determine LLVM version to use
@@ -346,12 +324,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libmagic-dev \
-            build-essential \
-            autoconf \
-            automake \
-            libtool \
-            git \
             zlib1g-dev \
             uuid-dev
         shell: bash
@@ -380,15 +352,12 @@ jobs:
         uses: msys2/setup-msys2@v2
         if: runner.os == 'Windows'
         with:
-          update: true
           cache: false
           install: |
-            base-devel
-            mingw-w64-x86_64-toolchain
             autoconf
             automake
             libtool
-            jq
+            make
 
 #------------------------------------- setup macOS environment for Xapian
 
@@ -566,9 +535,6 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          build-essential \
-          cmake \
-          ninja-build \
           libfontconfig1-dev \
           libfreetype6-dev \
           libx11-dev \
@@ -600,24 +566,9 @@ jobs:
 
 #------------------------------------- setup Windows environment for Qt6
 
-    - name: Install dependencies (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        choco install ninja
-      shell: bash
-
     - name: Set up MSVC dev command prompt (Windows)
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
-
-#------------------------------------- setup macOS environment for Qt6
-
-    - name: Install dependencies (macOS)
-      if: runner.os == 'macOS'
-      run: |
-        brew install cmake ninja
-        which ninja
-      shell: bash
 
 #------------------------------------- determine Qt6 version to use
 
@@ -858,19 +809,11 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          build-essential \
-          cmake \
-          ninja-build \
-          git \
-          python3 \
-          python3-pip \
           zlib1g-dev \
           libedit-dev \
           libffi-dev \
           libxml2-dev \
           libtinfo-dev \
-          flex \
-          bison \
           libfontconfig1-dev \
           libfreetype6-dev \
           libx11-dev \
@@ -913,7 +856,7 @@ jobs:
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
       run: |
-        choco install ninja winflexbison3 ghostscript graphviz.portable innosetup
+        choco install winflexbison3 ghostscript graphviz.portable
       shell: bash
 
     - name: Install MikTeX (Windows)
@@ -947,12 +890,6 @@ jobs:
         echo "$GSpath" >> $GITHUB_PATH
       shell: bash
 
-    - name: Refresh Env (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
-        refreshenv
-
     - name: Check tool versions (Windows)
       if: runner.os == 'Windows'
       run: |
@@ -983,7 +920,7 @@ jobs:
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
       run: |
-        brew install cmake ninja flex bison ossp-uuid
+        brew install flex bison ossp-uuid
         # make sure flex and bison from brew are found and not the one from the system.
         echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
         echo "$(brew --prefix flex)/bin" >> $GITHUB_PATH
