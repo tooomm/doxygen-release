@@ -358,12 +358,6 @@ jobs:
 
 #------------------------------------- setup Windows environment for Xapian
 
-      - name: Install dependencies (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          choco install wget -y
-        shell: bash
-
       - name: Set up MSVC dev command prompt (Windows)
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
@@ -371,7 +365,7 @@ jobs:
       - name: Download zlib (Windows)
         if: runner.os == 'Windows'
         run: |
-          curl -L -o zlib.tgz https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+          curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz"
           tar zxvf zlib.tgz
 
       - name: Build zlib (Windows)
@@ -388,7 +382,7 @@ jobs:
         with:
           update: true
           cache: false
-          install: >-
+          install: |
             base-devel
             mingw-w64-x86_64-toolchain
             autoconf
@@ -419,12 +413,13 @@ jobs:
       - name: Download Xapian source code
         run: |
           VERSION="${{ steps.xapian-version.outputs.version }}"
+          ARCHIVE="xapian-core-${VERSION}.tar.xz"
           echo "Downloading Xapian $VERSION"
           mkdir xapian
           cd xapian
-          wget https://oligarchy.co.uk/xapian/$VERSION/xapian-core-$VERSION.tar.xz
-          tar -Jxf xapian-core-$VERSION.tar.xz
-          rm xapian-core-$VERSION.tar.xz
+          curl -fL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
+          tar -Jxf "$ARCHIVE"
+          rm "$ARCHIVE"
           echo "Xapian source downloaded successfully"
         shell: bash
 
@@ -657,25 +652,25 @@ jobs:
         cd qt6-source
 
         echo "Downloading qtbase..."
-        curl -L -o qtbase.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qtbase-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qtbase.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qtbase-everywhere-src-$VERSION.tar.xz"
         tar -xf qtbase.tar.xz
         mv qtbase-everywhere-src-$VERSION qtbase
         rm qtbase.tar.xz
 
         echo "Downloading qtsvg..."
-        curl -L -o qtsvg.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qtsvg-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qtsvg.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qtsvg-everywhere-src-$VERSION.tar.xz"
         tar -xf qtsvg.tar.xz
         mv qtsvg-everywhere-src-$VERSION qtsvg
         rm qtsvg.tar.xz
 
         echo "Downloading qttranslations..."
-        curl -L -o qttranslations.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qttranslations-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qttranslations.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qttranslations-everywhere-src-$VERSION.tar.xz"
         tar -xf qttranslations.tar.xz
         mv qttranslations-everywhere-src-$VERSION qttranslations
         rm qttranslations.tar.xz
 
         echo "Downloading qttools..."
-        curl -L -o qttools.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qttools-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qttools.tar.xz "https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules/qttools-everywhere-src-$VERSION.tar.xz"
         tar -xf qttools.tar.xz
         mv qttools-everywhere-src-$VERSION qttools
         rm qttools.tar.xz
@@ -1004,7 +999,7 @@ jobs:
     - name: Download htmlhelp (Windows)
       if: runner.os == 'Windows'
       run: |
-        # curl -L -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
+        # curl -fL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
       shell: pwsh
 
@@ -1043,7 +1038,7 @@ jobs:
     - name: Download zlib (Windows)
       if: runner.os == 'Windows'
       run: |
-        curl -L -o zlib.tgz https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz"
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
