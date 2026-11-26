@@ -307,180 +307,177 @@ jobs:
 #------------------------------------- Job steps for Xapian
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
 #------------------------------------- Setup Linux environment for Xapian
 
-      - name: Install dependencies (Linux)
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            zlib1g-dev \
-            uuid-dev
-        shell: bash
+    - name: Install dependencies (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          zlib1g-dev \
+          uuid-dev
+      shell: bash
 
 #------------------------------------- Setup Windows environment for Xapian
 
-      - name: Set up MSVC dev command prompt (Windows)
-        if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+    - name: Set up MSVC dev command prompt (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Download zlib (Windows)
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |
-          curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz"
-          tar zxvf zlib.tgz
+    - name: Download zlib (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        tar zxvf zlib.tgz
 
-      - name: Build zlib (Windows)
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |
-          cd zlib-${{ env.ZLIB_VERSION }}
-          @rem nmake -f win32\Makefile.msc LOC="-MT" all
-          nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
+    - name: Build zlib (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd zlib-$ZLIB_VERSION
+        @rem nmake -f win32\Makefile.msc LOC="-MT" all
+        nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
 
-      - name: Install MSYS2 (Windows)
-        uses: msys2/setup-msys2@v2
-        if: runner.os == 'Windows'
-        with:
-          cache: false
-          install: |
-            autoconf
-            automake
-            libtool
-            make
+    - name: Install MSYS2 (Windows)
+      uses: msys2/setup-msys2@v2
+      if: runner.os == 'Windows'
+      with:
+        cache: false
+        install: |
+          autoconf
+          automake
+          libtool
+          make
 
 #------------------------------------- Setup macOS environment for Xapian
 
-      - name: Install dependencies (macOS)
-        if: runner.os == 'macOS'
-        shell: bash
-        run: brew install autoconf automake libtool libmagic
+    - name: Install dependencies (macOS)
+      if: runner.os == 'macOS'
+      shell: bash
+      run: brew install autoconf automake libtool libmagic
 
 #------------------------------------- Download source to build Xapian
 
-      - name: Download Xapian source code
-        shell: bash
-        run: |
-          VERSION="${{ env.XAPIAN_VERSION }}"
-          ARCHIVE="xapian-core-$VERSION.tar.xz"
-          echo "Downloading Xapian $VERSION..."
-          mkdir xapian
-          cd xapian
-          curl -fL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
-          tar -Jxf "$ARCHIVE"
-          rm "$ARCHIVE"
-          echo "Xapian source downloaded successfully"
+    - name: Download Xapian source code
+      shell: bash
+      run: |
+        VERSION=$XAPIAN_VERSION
+        ARCHIVE="xapian-core-$VERSION.tar.xz"
+        echo "Downloading Xapian $VERSION..."
+        mkdir xapian
+        cd xapian
+        curl -fL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
+        tar -Jxf "$ARCHIVE"
+        rm "$ARCHIVE"
+        echo "Xapian source downloaded successfully"
 
-#------------------------------------- Configure Xapian build for Linux/macOS
+#------------------------------------- Configure Xapian build for Linux/macOS + compile
 
-      - name: Configure Xapian (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          cd xapian/xapian-core-$XAPIAN_VERSION    # GitHub ENV variables are automatically exposed to steps
-          ./configure \
-            --prefix=${{ github.workspace }}/xapian-install \
-            --enable-static=yes \
-            --enable-shared=no \
-            --disable-documentation
+    - name: Configure Xapian (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        cd xapian/xapian-core-$XAPIAN_VERSION
+        ./configure \
+          --prefix=${{ github.workspace }}/xapian-install \
+          --enable-static=yes \
+          --enable-shared=no \
+          --disable-documentation
+
+    - name: Build & install Xapian (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: |
+        cd xapian/xapian-core-$XAPIAN_VERSION
+        make
+        make install
 
 #------------------------------------- Configure Xapian build for Windows + compile
 
-      - name: Configure Xapian (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          cd xapian/xapian-core-$XAPIAN_VERSION
-          make
+    - name: Write configuration script for Xapian (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        cd xapian/xapian-core-$XAPIAN_VERSION
+        cat <<- 'EOF' > run_me.sh
+        export CC="cl -nologo"
+        export CXX="./compile cl -nologo"
+        export CXXFLAGS="-EHsc"
+        export AR="lib"
+        export LD="link"
+        export NM="dumpbin"
+        export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
+        export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
+        export PREFIX_UNIX="$(cygpath $PREFIX)"
+        echo "prefix=$PREFIX_UNIX"
+        ./configure \
+          --enable-static=yes \
+          --enable-shared=no \
+          --prefix=$PREFIX_UNIX
+        EOF
+        chmod 755 run_me.sh
+        echo "===="
+        cat run_me.sh
+        echo "===="
 
-      - name: Build Xapian (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          cd xapian/xapian-core-$XAPIAN_VERSION
-          make install
+    - name: Configure Xapian (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        @echo on
+        cd xapian\xapian-core-$XAPIAN_VERSION
+        set PATH=C:\msys64\usr\bin;%PATH%
+        set LIB=..\..\zlib-$ZLIB_VERSION;%LIB%
+        set PREFIX=${{ github.workspace }}\xapian-install
+        set MSYS2_PATH_TYPE=inherit
+        bash -c "./run_me.sh"
 
-      - name: Write configuration script for Xapian (Windows)
-        if: runner.os == 'Windows'
-        shell: bash
-        run: |
-          cd xapian/xapian-core-$XAPIAN_VERSION
-          cat <<- 'EOF' > run_me.sh
-          export CC="cl -nologo"
-          export CXX="./compile cl -nologo"
-          export CXXFLAGS="-EHsc"
-          export AR="lib"
-          export LD="link"
-          export NM="dumpbin"
-          export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
-          export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
-          export PREFIX_UNIX="$(cygpath $PREFIX)"
-          echo "prefix=$PREFIX_UNIX"
-          ./configure --enable-static=yes --enable-shared=no --prefix=$PREFIX_UNIX
-          make
-          EOF
-          chmod 755 run_me.sh
-          echo "===="
-          cat run_me.sh
-          echo "===="
-
-      - name: Configure Xapian (Windows)
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |
-          @echo on
-          cd xapian\xapian-core-$XAPIAN_VERSION
-          set PATH=C:\msys64\usr\bin;%PATH%
-          set LIB=..\..\zlib-$ZLIB_VERSION;%LIB%
-          set PREFIX=${{ github.workspace }}\xapian-install
-          set MSYS2_PATH_TYPE=inherit
-          bash -c "./run_me.sh"
-
-      - name: Build Xapian (Windows)
-        if: runner.os == 'Windows'
-        shell: cmd
-        run: |
-          cd xapian\xapian-core-$XAPIAN_VERSION
-          make install
+    - name: Build & install Xapian (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd xapian\xapian-core-$XAPIAN_VERSION
+        make
+        make install
 
 #------------------------------------- Verify Xapian build results and installation output
 
-      - name: Verify static build
-        shell: bash
-        run: |
-          echo "Checking Xapian static library..."
-          cd xapian
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            find "$(cygpath "${{ github.workspace }}")/xapian-install" -name "*.lib" | head -10
-          else
-            find ${{ github.workspace }}/xapian-install -name "*.a" | head -10
-            nm -C ${{ github.workspace }}/xapian-install/lib/libxapian.a  | grep " U " | sort | uniq
-          fi
+    - name: Verify static build
+      shell: bash
+      run: |
+        echo "Checking Xapian static library..."
+        cd xapian
+        if [ "${{ runner.os }}" == "Windows" ]; then
+          find "$(cygpath "${{ github.workspace }}")/xapian-install" -name "*.lib" | head -10
+        else
+          find ${{ github.workspace }}/xapian-install -name "*.a" | head -10
+          nm -C ${{ github.workspace }}/xapian-install/lib/libxapian.a  | grep " U " | sort | uniq
+        fi
 
 #------------------------------------- Create Xapian build artifacts to upload
 
-      - name: Create build artifact (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: tar -czf xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.tar.gz -C xapian-install .
+    - name: Create build artifact (Linux/macOS)
+      if: runner.os != 'Windows'
+      shell: bash
+      run: tar -czf xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.tar.gz -C xapian-install .
 
-      - name: Create build artifact (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: Compress-Archive -Path 'xapian-install\\*' -DestinationPath 'xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.zip' -Force
+    - name: Create build artifact (Windows)
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: Compress-Archive -Path 'xapian-install\\*' -DestinationPath 'xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.zip' -Force
 
 #------------------------------------- Upload Xapian build artifacts
 
-      - name: Upload Xapian static build
-        uses: actions/upload-artifact@v6
-        with:
-          name: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}
-          path: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.${{ matrix.archive_format }}
-          retention-days: 30
+    - name: Upload Xapian static build
+      uses: actions/upload-artifact@v6
+      with:
+        name: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}
+        path: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.${{ matrix.archive_format }}
+        retention-days: 30
 
 #===============================================================
 # Stage 1: Qt6
