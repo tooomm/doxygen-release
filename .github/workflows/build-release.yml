@@ -49,11 +49,11 @@ env:
 jobs:
 
 #===============================================================
-# DELETE CACHES JOB
+# Stage 0: Delete Caches
 #===============================================================
 
   delete-caches:
-    name: Delete cached dependencies
+    name: Delete caches
     runs-on: ubuntu-slim
     if: github.event_name == 'workflow_dispatch' && inputs.rebuild_caches == true
     # 'actions: write' permission is required to clear caches
@@ -61,7 +61,7 @@ jobs:
       actions: write
 
     steps:
-      - name: Delete dependency caches
+      - name: Delete cached dependencies
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
@@ -83,7 +83,7 @@ jobs:
           done
 
 #===============================================================
-# LLVM JOB
+# Stage 1: LLVM
 #===============================================================
 
   build-llvm:
@@ -92,6 +92,9 @@ jobs:
     needs:
       - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
+
+#------------------------------------- jobs
+
     strategy:
       fail-fast: false
       matrix:
@@ -116,6 +119,9 @@ jobs:
             cpu: intel
             archive_format: tar.gz
             llvm_version: 23.1.4
+
+#------------------------------------- steps
+
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -124,6 +130,7 @@ jobs:
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -132,7 +139,6 @@ jobs:
           libffi-dev \
           libxml2-dev \
           libtinfo-dev
-      shell: bash
 
 #------------------------------------- setup Windows environment for LLVM
 
@@ -140,54 +146,31 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/msvc-dev-cmd@v1
 
-#------------------------------------- determine LLVM version to use
-
-    - name: Get latest LLVM release tag
-      id: llvm-version
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: |
-        set -euo pipefail
-        LATEST_TAG="llvmorg-${{ matrix.llvm_version }}"
-        echo "tag=$LATEST_TAG" >> $GITHUB_OUTPUT
-        VERSION=${LATEST_TAG#llvmorg-}
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-      shell: bash
-
-#------------------------------------- get LLVM sources to build
-
+#------------------------------------- download LLVM sources to build
+        
     - name: Cache LLVM install
       id: cache-llvm-install
       uses: actions/cache@v4
       with:
         path: llvm-install
-        key: llvm-install-${{ steps.llvm-version.outputs.tag }}-${{ matrix.os }}
+        key: llvm-install-${{ matrix.llvm_version }}-${{ matrix.os }}
 
     - name: Download LLVM source code
       if: steps.cache-llvm-install.outputs.cache-hit != 'true'
-      run: |
-        echo "Downloading LLVM ${{ steps.llvm-version.outputs.tag }}"
-        git clone --depth 1 --branch ${{ steps.llvm-version.outputs.tag }} https://github.com/llvm/llvm-project.git
-        if [ ! -d "llvm-project/llvm" ]; then
-          echo "Error: LLVM source download failed or directory structure is incorrect"
-          exit 1
-        fi
-        echo "LLVM source downloaded successfully"
       shell: bash
+      run: |
+        echo "Downloading LLVM ${{ matrix.llvm_version }}..."
+        git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
+        cd llvm-project
+        git sparse-checkout set --progress llvm
 
-#------------------------------------- configure LLVM
+#------------------------------------- configure build system for LLVM + compile
 
     - name: Configure CMake for LLVM (Linux/macOS)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
       run: |
-        # Verify LLVM source directory exists
-        if [ ! -d "llvm-project/llvm" ]; then
-          echo "Error: LLVM source directory not found"
-          exit 1
-        fi
-        mkdir -p llvm-project/build
-        cd llvm-project/build
-        cmake ../llvm \
+        cmake -S llvm-project/llvm -B llvm-project/build \
           -G Ninja \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
           -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}/llvm-install \
@@ -209,17 +192,20 @@ jobs:
           -DLLVM_LINK_LLVM_DYLIB=OFF \
           -DLIBCLANG_BUILD_STATIC=ON \
           -DCLANG_LINK_CLANG_DYLIB=OFF \
+
+    - name: Build & install LLVM (Linux/macOS)
+      if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
+      shell: bash
+      run: |
+          cd llvm-project/build
           cmake --build . --parallel
           cmake --install .
-      shell: bash
 
     - name: Configure CMake for LLVM (Windows)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: cmd
       run: |
-        mkdir llvm-project
-        mkdir llvm-project\build
-        cd llvm-project\build
-        cmake ..\llvm ^
+        cmake -S llvm-project\llvm -B llvm-project\build ^
           -G Ninja ^
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
           -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}\llvm-install ^
@@ -243,50 +229,52 @@ jobs:
           -DLLVM_USE_CRT_RELEASE=MT ^
           -DLLVM_TARGETS_TO_BUILD="X86;AArch64" ^
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+
+    - name: Build & install LLVM (Windows)
+      if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
+      shell: cmd
+      run: |
+        cd llvm-project\build
         cmake --build . --parallel
         cmake --install .
-      shell: cmd
 
 #------------------------------------- check LLVM build results
 
     - name: Verify static build
+      shell: bash
       run: |
         echo "Checking libclang static library..."
         if [ "${{ runner.os }}" == "Windows" ]; then
           win_search_dir="${{ github.workspace }}/llvm-install"
-          win_search_dir="${search_dir//\\//}"
+          win_search_dir="${win_search_dir//\\//}"
           find $win_search_dir -name "libclang*.lib" -o -name "clang*.lib" | head -10
         else
           find ${{ github.workspace }}/llvm-install -name "libclang*.a" | head -10
         fi
-      shell: bash
 
 #------------------------------------- create LLVM artifacts to upload
 
     - name: Create build artifact (Linux/macOS)
       if: runner.os != 'Windows'
-      run: |
-        cd ${{ github.workspace }}
-        tar -czf llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.tar.gz -C llvm-install .
       shell: bash
+      run: tar -czf llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}.tar.gz -C llvm-install .
 
     - name: Create build artifact (Windows)
       if: runner.os == 'Windows'
-      run: |
-        Compress-Archive -Path 'llvm-install\\*' -DestinationPath 'llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.zip' -Force
-      shell: pwsh
+      shell: bash
+      run: Compress-Archive -Path 'llvm-install\\*' -DestinationPath 'llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}.zip' -Force
 
 #------------------------------------- upload LLVM artifacts
 
     - name: Upload LLVM static build
       uses: actions/upload-artifact@v6
       with:
-        name: llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}
-        path: llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.${{ matrix.archive_format }}
+        name: llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}
+        path: llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}.${{ matrix.archive_format }}
         retention-days: 30
 
 #===============================================================
-# Xapian JOB
+# Stage 1: Xapian
 #===============================================================
 
   build-xapian:
