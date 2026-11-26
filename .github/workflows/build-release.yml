@@ -10,7 +10,7 @@ on:
           - 'tagged'
           - 'master'
       rebuild_caches:
-        description: 'Rebuild dependency caches from source'
+        description: 'Rebuild dependency caches from sources'
         required: false
         default: false
         type: boolean
@@ -744,6 +744,7 @@ jobs:
       - 'build-xapian'
       - 'build-qt6'
     if: ${{ !cancelled() && needs.build-llvm.result == 'success' && needs.build-xapian.result == 'success' && needs.build-qt6.result == 'success' }}
+
     # 'actions: read' is required by the SignPath GitHub Action to download the
     # unsigned artifact that gets submitted for code signing (Windows only).
     permissions:
@@ -787,6 +788,7 @@ jobs:
 
     - name: Install dependencies (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         sudo apt-get update
         sudo apt-get install -y \
@@ -830,9 +832,8 @@ jobs:
           texlive-font-utils \
           ghostscript \
           graphviz
-      shell: bash
 
-#------------------------------------- setup Windows environment for Doxygen
+#------------------------------------- Setup Windows environment for Doxygen
 
     - name: Set up MSVC dev command prompt (Windows)
       if: runner.os == 'Windows'
@@ -840,9 +841,8 @@ jobs:
 
     - name: Install dependencies (Windows)
       if: runner.os == 'Windows'
-      run: |
-        choco install winflexbison3 ghostscript graphviz.portable
       shell: bash
+      run: choco install winflexbison3 ghostscript graphviz.portable
 
     - name: Install MikTeX (Windows)
       if: runner.os == 'Windows'
@@ -857,6 +857,7 @@ jobs:
 
     - name: Configure MikTeX (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
         miktex --admin --verbose packages update-package-database
         miktex --admin --verbose packages update
@@ -868,15 +869,16 @@ jobs:
 
     - name: Setting Ghostscript paths (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
         export GSpath=`find /c/Prog*/gs -name gswin\*c.exe | sed -e "s/gswin.*c.exe//"`
         export PATH="$GSpath:$PATH"
         export GSpath=`echo "$GSpath" | sed -e "s%/c%C:%"`
         echo "$GSpath" >> $GITHUB_PATH
-      shell: bash
 
     - name: Check tool versions (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
         echo "=== perl ===";
         perl --version;
@@ -898,32 +900,31 @@ jobs:
         dot -V;
         echo "=== ghostscript ===";
         gswin64c --version;
-      shell: bash
 
-#------------------------------------- setup macOS environment for Doxygen
+#------------------------------------- Setup macOS environment for Doxygen
 
     - name: Install dependencies (macOS)
       if: runner.os == 'macOS'
+      shell: bash
       run: |
         brew install flex bison ossp-uuid
         # make sure flex and bison from brew are found and not the one from the system.
         echo "$(brew --prefix bison)/bin" >> $GITHUB_PATH
         echo "$(brew --prefix flex)/bin" >> $GITHUB_PATH
         echo "LOC=$(brew --prefix ossp-uuid)"
-      shell: bash
 
-#------------------------------------- install HtmlHelp compiler for Windows
+#------------------------------------- Install HtmlHelp compiler for Windows
 
     - name: Download htmlhelp (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         # curl -fL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
-      shell: pwsh
 
     - name: Verify hhc.exe is installed
       if: runner.os == 'Windows'
-      shell: powershell
+      shell: pwsh
       run: |
           $possiblePaths = @(
             "$env:ProgramFiles(x86)\HTML Help Workshop\hhc.exe",
@@ -951,33 +952,34 @@ jobs:
           Write-Host "FileVersion: $($fi.VersionInfo.FileVersion)"
           Write-Host "ProductVersion: $($fi.VersionInfo.ProductVersion)"
 
-#------------------------------------- get and install static libz for Windows
+#------------------------------------- Download and install static libz for Windows
 
     - name: Download zlib (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
-        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-${{ env.ZLIB_VERSION }}.tar.gz"
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
-        cd zlib-${{ env.ZLIB_VERSION }}
+        cd zlib-$ZLIB_VERSION
         @rem nmake -f win32\Makefile.msc LOC="-MT" all
         nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
 
-#------------------------------------- determine version of doxygen to use
+#------------------------------------- Determine version of Doxygen to use
 
     - name: Get latest Doxygen release tag
       id: doxygen-version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      shell: bash
       run: |
-        # use latest tagged version
-        if [ "${{ github.event.inputs.git_source_version }}" == "tagged" ]; then
+        # Use latest tagged version
+        if [ "${{ github.event.inputs.doxygen_source_version }}" == "tagged" ]; then # value is "tagged"
           set -euo pipefail
-          echo "GITHUB_TOKEN present: ${GITHUB_TOKEN:+yes}"
           resp=$(curl -sS -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github.v3+json" "https://api.github.com/repos/doxygen/doxygen/tags" ) || true
           tag=$(echo "$resp" | jq -r '.[0].name // empty')
           LATEST_TAG="$tag"
@@ -994,26 +996,27 @@ jobs:
           VERSION=${LATEST_TAG#Release_}
           VERSION=${VERSION//_/.}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+
         else # value is "master"
-          # alternatively use latest master
+          # Alternatively use latest master
           git clone --depth 1 --branch master https://github.com/doxygen/doxygen.git
           VERSION=`cat doxygen/VERSION`
           echo "tag=master" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
         fi
-      shell: bash
 
-#------------------------------------- download Doxygen sources
+#------------------------------------- Download source to build Doxygen
 
     - name: Download Doxygen source code
+      shell: bash
       run: |
-        echo "Downloading Doxygen ${{ steps.doxygen-version.outputs.tag }}"
+        echo "Downloading Doxygen ${{ steps.doxygen-version.outputs.tag }}..."
 
-        if [ "${{ github.event.inputs.git_source_version }}" == "tagged" ]; then
-          # download source for latest tagged release
+        if [ "${{ github.event.inputs.doxygen_source_version }}" == "tagged" ]; then # value is "tagged"
+          # Download source for latest tagged release
           git clone --depth 1 --branch ${{ steps.doxygen-version.outputs.tag }} https://github.com/doxygen/doxygen.git
         else # value is "master"
-          echo "using latest master (${{ steps.doxygen-version.outputs.version }}), sources are already downloaded in the previous step"
+          echo "Using latest master (${{ steps.doxygen-version.outputs.version }}), source is already downloaded in the previous step"
         fi
 
         if [ ! -d "doxygen" ]; then
@@ -1021,9 +1024,8 @@ jobs:
           exit 1
         fi
         echo "Doxygen source downloaded successfully"
-      shell: bash
 
-#------------------------------------- prepare libclang dependency
+#------------------------------------- Prepare LLVM libclang dependency for Doxygen
 #
     - name: Download LLVM artifacts
       uses: actions/download-artifact@v7
@@ -1031,36 +1033,26 @@ jobs:
         name: llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}
         path: llvm-artifact
 
-    - name: Extract LLVM version from artifact
-      id: llvm-version
-      run: |
-        cd llvm-artifact
-        FILENAME=$(ls llvm-static-* | head -1)
-        VERSION=$(echo "$FILENAME" | sed -E 's/llvm-static-(.+)-${{ matrix.os }}.*/\1/')
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "LLVM version from artifact: $VERSION"
-      shell: bash
-
     - name: Extract LLVM artifacts (Linux/macOS)
       if: runner.os != 'Windows'
+      shell: bash
       run: |
         mkdir -p llvm-install
         ls llvm-artifact
         # Extract the tar.gz archive to the install directory
-        tar -xzf llvm-artifact/llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.tar.gz -C llvm-install
+        tar -xzf llvm-artifact/llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}.tar.gz -C llvm-install
         ls llvm-install
-      shell: bash
 
     - name: Extract LLVM artifacts (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         mkdir llvm-install
         dir llvm-artifact
-        Expand-Archive -Path "llvm-artifact/llvm-static-${{ steps.llvm-version.outputs.version }}-${{ matrix.os }}.zip" -DestinationPath "llvm-install"
+        Expand-Archive -Path "llvm-artifact/llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}.zip" -DestinationPath "llvm-install"
         dir llvm-install
-      shell: pwsh
 
-#------------------------------------- prepare Qt dependency
+#------------------------------------- Prepare Qt dependency for Doxygen
 
     - name: Download Qt6 artifacts
       uses: actions/download-artifact@v7
@@ -1068,79 +1060,58 @@ jobs:
         name: qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}
         path: qt6-artifact
 
-    - name: Extract Qt6 version from artifact
-      id: qt6-version
-      run: |
-        cd qt6-artifact
-        FILENAME=$(ls qt6-static-* | head -1)
-        VERSION=$(echo "$FILENAME" | sed -E 's/qt6-static-(.+)-${{ matrix.os }}.*/\1/')
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Qt6 version from artifact: $VERSION"
-      shell: bash
-
     - name: Extract Qt6 artifacts (Linux/macOS)
       if: runner.os != 'Windows'
+      shell: bash
       run: |
         mkdir -p qt6-install
         ls qt6-artifact
         # Extract the tar.gz archive to the install directory
-        tar -xzf qt6-artifact/qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.tar.gz -C qt6-install
+        tar -xzf qt6-artifact/qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}.tar.gz -C qt6-install
         ls qt6-install
-      shell: bash
 
     - name: Extract Qt6 artifacts (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         mkdir qt6-install
         dir qt6-artifact
-        Expand-Archive -Path "qt6-artifact/qt6-static-${{ steps.qt6-version.outputs.version }}-${{ matrix.os }}.zip" -DestinationPath "qt6-install"
+        Expand-Archive -Path "qt6-artifact/qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}.zip" -DestinationPath "qt6-install"
         dir qt6-install
-      shell: pwsh
 
-#------------------------------------- prepare Xapian dependency
+#------------------------------------- Prepare Xapian dependency for Doxygen
 
-    - name: Download Xapian artifacts
+    - name: Download Xapian artifact
       uses: actions/download-artifact@v7
       with:
         name: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}
         path: xapian-artifact
 
-    - name: Extract Xapian version from artifact
-      id: xapian-version
-      run: |
-        cd xapian-artifact
-        FILENAME=$(ls xapian-static-* | head -1)
-        VERSION=$(echo "$FILENAME" | sed -E 's/xapian-static-(.+)-${{ matrix.os }}.*/\1/')
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "Xapian version from artifact: $VERSION"
-      shell: bash
-
     - name: Extract Xapian artifacts (Linux/macOS)
       if: runner.os != 'Windows'
+      shell: bash
       run: |
         mkdir -p xapian-install
         ls xapian-artifact
         # Extract the tar.gz archive to the install directory
-        tar -xzf xapian-artifact/xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.tar.gz -C xapian-install
+        tar -xzf xapian-artifact/xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.tar.gz -C xapian-install
         ls xapian-install
-      shell: bash
 
     - name: Extract Xapian artifacts (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         mkdir xapian-install
         dir xapian-artifact
-        Expand-Archive -Path "xapian-artifact/xapian-static-${{ steps.xapian-version.outputs.version }}-${{ matrix.os }}.zip" -DestinationPath "xapian-install"
+        Expand-Archive -Path "xapian-artifact/xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.zip" -DestinationPath "xapian-install"
         dir xapian-install
-      shell: pwsh
 
-#------------------------------------- configure build
+#------------------------------------- Configure Doxygen build
 
     - name: Configure CMake for Doxygen (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
-        mkdir -p doxygen/build
-        cd doxygen/build
         UUID_MULTIARCH="$(gcc -print-multiarch)"
         UUID_LIB="/usr/lib/${UUID_MULTIARCH}/libuuid.a"
         if [ ! -f "$UUID_LIB" ]; then
@@ -1150,9 +1121,15 @@ jobs:
         UUID_FLAG="-DUUID_LIB=${UUID_LIB}"
         echo "Using libuuid: $UUID_LIB"
         echo "UUID_FLAG=$UUID_FLAG"
-        cmake .. -G Ninja \
+
+        cmake .. x \
+
+        mkdir -p doxygen/build
+        cd doxygen/build
+        -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
+
+          -G Ninja \
           -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
           -DXAPIAN_LIBRARIES="${{ github.workspace }}/xapian-install/lib/libxapian.a" \
           -DXAPIAN_INCLUDE_DIR="${{ github.workspace }}/xapian-install/include" \
           $UUID_FLAG \
@@ -1170,18 +1147,23 @@ jobs:
           -Dstatic_libxapian=YES \
           -Dforce_qt=Qt6 \
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/llvm-install;${{ github.workspace }}/qt6-install;${{ github.workspace }}/xapian-install"
-      shell: bash
 
     - name: Configure CMake for Doxygen (macOS)
       if: runner.os == 'macOS'
+      shell: bash
       run: |
-        mkdir -p doxygen/build
-        cd doxygen/build
         UUID_FLAG="-DUUID_LIB=$(brew --prefix ossp-uuid)/lib/libuuid.a"
         echo "UUID_FLAG=$UUID_FLAG"
-        cmake .. -G Ninja \
+
+        cmake .. x \
+
+        mkdir -p doxygen/build
+        cd doxygen/build
+        -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
+
+
+          -G Ninja \
           -DCMAKE_BUILD_TYPE="${{ env.BUILD_TYPE }}" \
-          -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}/doxygen-install" \
           -DXAPIAN_LIBRARIES="${{ github.workspace }}/xapian-install/lib/libxapian.a" \
           -DXAPIAN_INCLUDE_DIR="${{ github.workspace }}/xapian-install/include" \
           $UUID_FLAG \
@@ -1198,101 +1180,123 @@ jobs:
           -Dstatic_libxapian=YES \
           -Dforce_qt=Qt6 \
           -DCMAKE_PREFIX_PATH="${{ github.workspace }}/llvm-install;${{ github.workspace }}/qt6-install;${{ github.workspace }}/xapian-install"
-      shell: bash
 
     - name: Configure CMake for Doxygen (Windows)
       if: runner.os == 'Windows'
-      run: |
-        mkdir doxygen\build
-        cd doxygen\build
-        cmake .. -G Ninja ^
-              -Dwin_static=YES ^
-              -Dbuild_search=YES ^
-              -Dbuild_wizard=YES ^
-              -Duse_libclang=YES ^
-              -Dstatic_libclang=YES ^
-              -Dforce_qt=Qt6 ^
-              -Dbuild_doc=YES ^
-              -Dbuild_doc_chm=YES ^
-              -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
-              -DCMAKE_INSTALL_PREFIX=${{ github.workspace }}\doxygen-install ^
-              -DXAPIAN_LIBRARIES=${{ github.workspace }}\xapian-install\lib\xapian.lib ^
-              -DXAPIAN_INCLUDE_DIR=${{ github.workspace }}\xapian-install\include ^
-              -DLLVM_DIR=${{ github.workspace }}\llvm-install\lib\cmake\llvm ^
-              -DClang_DIR=${{ github.workspace }}\llvm-install\lib\cmake\clang ^
-              -DCLANG_LIBS=${{ github.workspace }}\llvm-install\lib\libclang.lib ^
-              -DQt6_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6 ^
-              -DQt6Core_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Core ^
-              -DQt6Gui_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Gui ^
-              -DQt6Widgets_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Widgets ^
-              -DZLIB_LIBRARY=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\zlib.lib ^
-              -DZLIB_INCLUDE_DIR=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\include
       shell: cmd
+      run: |
+        cmake .. x ^
 
-#------------------------------------- build targets
+        mkdir -p doxygen/build
+        cd doxygen/build
+        -DCMAKE_INSTALL_PREFIX="${{ github.workspace }}\doxygen-install"
+
+          -G Ninja ^
+          -Dwin_static=YES ^
+          -Dbuild_search=YES ^
+          -Dbuild_wizard=YES ^
+          -Duse_libclang=YES ^
+          -Dstatic_libclang=YES ^
+          -Dforce_qt=Qt6 ^
+          -Dbuild_doc=YES ^
+          -Dbuild_doc_chm=YES ^
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
+          -DXAPIAN_LIBRARIES=${{ github.workspace }}\xapian-install\lib\xapian.lib ^
+          -DXAPIAN_INCLUDE_DIR=${{ github.workspace }}\xapian-install\include ^
+          -DLLVM_DIR=${{ github.workspace }}\llvm-install\lib\cmake\llvm ^
+          -DClang_DIR=${{ github.workspace }}\llvm-install\lib\cmake\clang ^
+          -DCLANG_LIBS=${{ github.workspace }}\llvm-install\lib\libclang.lib ^
+          -DQt6_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6 ^
+          -DQt6Core_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Core ^
+          -DQt6Gui_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Gui ^
+          -DQt6Widgets_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Widgets ^
+          -DZLIB_LIBRARY=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\zlib.lib ^
+          -DZLIB_INCLUDE_DIR=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\include
+
+#------------------------------------- Build Doxygen targets + install
 
     - name: Build Doxygen (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         cd doxygen/build
         cmake --build . --parallel
+
+    - name: Build Doxygen docs (Linux)
+      if: runner.os == 'Linux'
+      shell: bash
+      run: |
+        cd doxygen/build
         cmake --build . --parallel 2 --target docs
         cmake --build . --parallel 2 --target docs_chm
-        cmake --install .
+
+    - name: Install Doxygen (Linux)
+      if: runner.os == 'Linux'
       shell: bash
+      run: |
+        cd doxygen/build
+        cmake --install .
 
     - name: Build Doxygen (macOS)
       if: runner.os == 'macOS'
+      shell: bash
       run: |
         cd doxygen/build
         cmake --build . --parallel
+
+    - name: Install Doxygen (macOS)
+      if: runner.os == 'macOS'
       shell: bash
+      run: |
+        cd doxygen/build
+        cmake --install .
 
     - name: Build Doxygen (Windows)
       if: runner.os == 'Windows'
+      shell: cmd
       run: |
         cd doxygen\build
         cmake --build . --parallel
-      shell: cmd
 
     - name: Build Doxygen docs (Windows)
       if: runner.os == 'Windows'
+      shell: cmd
       run: |
         cd doxygen\build
         cmake --build . --parallel 2 --target docs
-        cmake --build . --parallel 2 --target docs_chm
-      shell: cmd
+        cmake --build . --parallel 2 --target docs_chm    # will they run in parallel to each other? otherwise no reason to reduce to npocmax/2 for each?
 
     - name: Install Doxygen (Windows)
       if: runner.os == 'Windows'
+      shell: cmd
       run: |
         cd doxygen\build
         cmake --install .
-      shell: cmd
 
-#------------------------------------- verify build results
+#------------------------------------- Verify Doxygen build results
 
     - name: Verify Doxygen build (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         echo "Checking Doxygen binary..."
         ls -lh ${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }}
-        # Try to run doxygen to verify it works
-        ${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }} --version || echo "Note: doxygen version check failed (may be expected on some platforms)"
-      shell: bash
+        # Try to run Doxygen to verify it works
+        ${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }} --version || echo "Note: Doxygen version check failed"
 
     - name: Verify Doxygen build (Windows)
       if: runner.os == 'Windows'
+      shell: cmd
       run: |
         echo "Checking Doxygen binary..."
         ls -lh ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }}
-        ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }} --version || echo "Note: doxygen version check failed (may be expected on some platforms)"
-      shell: cmd
+        ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }} --version || echo "Note: doxygen version check failed"
 
-#------------------------------------- create installation artifacts
+#------------------------------------- Create Doxygen installation artifacts for Windows
 
-    - name: Prepare executables (Windows)
+    - name: Prepare Doxygen executables (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
         subst R: ${{ github.workspace }}
         mkdir installer
@@ -1300,10 +1304,9 @@ jobs:
         editbin R:\doxygen-install\bin\doxygen.exe /SUBSYSTEM:CONSOLE,6.00 /OSVERSION:5.1
         editbin R:\doxygen-install\bin\doxyindexer.exe /SUBSYSTEM:CONSOLE,6.00 /OSVERSION:5.1
         editbin R:\doxygen-install\bin\doxysearch.cgi.exe /SUBSYSTEM:CONSOLE,6.00 /OSVERSION:5.1
-      shell: powershell
 
-#------------------------------------- sign the Windows executables via SignPath
-#
+#------------------------------------- Sign the Doxygen executables via SignPath for Windows
+
 # The executables are code signed before they are packaged into the installer
 # and the zip archive, so both contain signed binaries. SignPath is configured
 # to use the self-signed test certificate by default (SIGNPATH_SIGNING_POLICY_SLUG
@@ -1340,16 +1343,17 @@ jobs:
 
     - name: Replace executables with signed ones (Windows)
       if: runner.os == 'Windows' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
-      run: |
-        Copy-Item -Path 'signed\executables\*' -Destination 'doxygen-install\bin' -Force
-      shell: powershell
+      shell: pwsh
+      run: Copy-Item -Path 'signed\executables\*' -Destination 'doxygen-install\bin' -Force
 
-    - name: Create installer (Windows)
+    - name: Create Doxygen installer (Windows)
       if: runner.os == 'Windows'
+      shell: pwsh
       run: |
-        Write-Host "Using version: '${{ steps.doxygen-version.outputs.version }}'"
-        (Get-Content .\windows\doxygen.iss -Raw) -replace '\$VERSION','${{ steps.doxygen-version.outputs.version }}' | Set-Content -Encoding ASCII .\doxygen-versioned.iss
-        # invoke the inno setup compiler
+        $VERSION = "${{ steps.doxygen-version.outputs.version }}"
+        Write-Host "Using version: '$VERSION'"
+        (Get-Content .\windows\doxygen.iss -Raw) -replace '\$VERSION','$VERSION' | Set-Content -Encoding ASCII .\doxygen-versioned.iss
+        # Invoke the inno setup compiler
         $iscc = Get-Command ISCC.exe -ErrorAction SilentlyContinue
         if (-not $iscc) {
           Write-Error "ISCC.exe not found. Checked: $($possible -join '; ') and PATH."
@@ -1360,7 +1364,7 @@ jobs:
         $doxygen_chm_files = @(
           'R:\doxygen-install\share\doc\packages\doxygen\doxygen_manual.chm'
         )
-        Compress-Archive -Path $doxygen_chm_files -DestinationPath 'R:\installer\doxygen_manual-${{ steps.doxygen-version.outputs.version }}.chm.zip' -Force
+        Compress-Archive -Path $doxygen_chm_files -DestinationPath 'R:\installer\doxygen_manual-$VERSION.chm.zip' -Force
         $doxygen_zip_files = @(
           'R:\doxygen-install\bin\doxysearch.cgi.exe',
           'R:\doxygen-install\bin\doxyindexer.exe',
@@ -1368,16 +1372,15 @@ jobs:
           'R:\doxygen-install\bin\doxygen.exe'
           'R:\doxygen-install\bin\libclang.dll'
         )
-        Compress-Archive -Path $doxygen_zip_files -DestinationPath 'R:\installer\doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip' -Force
-      shell: powershell
+        Compress-Archive -Path $doxygen_zip_files -DestinationPath 'R:\installer\doxygen-$VERSION.windows.x64.bin.zip' -Force
 
     - name: Upload unsigned installer (Windows)
       if: runner.os == 'Windows'
       id: upload-unsigned-installer
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen-${{ steps.doxygen-version.outputs.version }}-windows-unsigned-installer
-        path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe
+        name: doxygen-$VERSION-windows-unsigned-installer
+        path: installer/doxygen-$VERSION-setup.exe
         retention-days: 1
 
     - name: Submit installer for signing (Windows)
@@ -1396,21 +1399,22 @@ jobs:
 
     - name: Replace installer with signed one (Windows)
       if: runner.os == 'Windows' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
-      run: |
-        Copy-Item -Path 'signed\installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Destination 'installer\doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe' -Force
-      shell: powershell
+      shell: pwsh
+      run: Copy-Item -Path 'signed\installer\doxygen-$VERSION-setup.exe' -Destination 'installer\doxygen-$VERSION-setup.exe' -Force
 
-    - name: Create installer (macOS)
+#------------------------------------- Create Doxygen installation artifacts for macOS (1/2)
+
+    - name: Create Doxygen installer 1/2 (macOS)
       if: runner.os == 'macOS'
+      shell: bash
       run: |
         mkdir installer
-
-        # create DMG file
+        # Create DMG file
         mkdir image
         bunzip2 -k macos/template.sparseimage.bz2
         hdiutil attach macos/template.sparseimage -noautoopen -quiet -mountpoint image
         cp -a macos/Doxygen.app image
-        #cp -a macos/Readme.rtf image
+        # cp -a macos/Readme.rtf image
         mkdir -p image/Doxygen.app/Contents/MacOS
         sed -i -e "s/\$VERSION/${{ steps.doxygen-version.outputs.version }}/g" image/Doxygen.app/Contents/Info.plist
         cp doxygen/build/bin/doxygen        image/Doxygen.app/Contents/Resources
@@ -1419,7 +1423,7 @@ jobs:
         cp doxygen/build/bin/doxywizard     image/Doxygen.app/Contents/MacOS/Doxywizard
         xattr -c -r image/Doxygen.app
 
-      shell: bash
+#------------------------------------- Sign the Doxygen executables for macOS
 
     - name: Codesign executable (macOS)
       if: runner.os == 'macOS' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
@@ -1427,31 +1431,32 @@ jobs:
         MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
         MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
+      shell: bash
       run: |
-        # decode certificate
+        # Decode certificate
         echo "--- decoding certificate"
         echo $MACOS_CERTIFICATE | base64 --decode > certificate.p12
 
-        # create keychain
+        # Create keychain
         echo "--- creating keychain"
         security create-keychain -p DoxygenPW build.keychain
         security default-keychain -s build.keychain
         security unlock-keychain -p DoxygenPW build.keychain
         security set-keychain-settings -t 3600 -u build.keychain
 
-        # import certificate
+        # Import certificate
         echo "--- importing certificate"
         security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
 
-        # key signing
+        # Key signing
         echo "--- signing key"
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k DoxygenPW build.keychain
 
-        # debug
+        # Debug
         echo "--- finding indentity"
         security find-identity -v build.keychain
 
-        # sign code
+        # Sign code
         echo "--- signing executables in the DMG"
         codesign --force --option=runtime -s $MACOS_SIGNID image/Doxygen.app/Contents/Resources/doxygen -v
         codesign --force --option=runtime -s $MACOS_SIGNID image/Doxygen.app/Contents/Resources/doxyindexer -v
@@ -1464,7 +1469,7 @@ jobs:
         codesign --force -s $MACOS_SIGNID doxygen/build/bin/doxyindexer -v
         codesign --force -s $MACOS_SIGNID doxygen/build/bin/doxysearch.cgi -v
 
-        # verify signing
+        # Verify signing
         echo "--- verifying signing"
         codesign -v image/Doxygen.app/Contents/Resources/doxygen --verbose
         codesign -v image/Doxygen.app/Contents/Resources/doxyindexer --verbose
@@ -1472,25 +1477,28 @@ jobs:
         codesign -v image/Doxygen.app/Contents/MacOS/Doxywizard --verbose
         codesign -v image/Doxygen.app --verbose
 
-      shell: bash
+#------------------------------------- Create Doxygen installation artifacts for macOS (2/2)
 
-    - name: Create installer continued (macOS)
+    - name: Create Doxygen installer 2/2 (macOS)
       if: runner.os == 'macOS'
+      shell: bash
       run: |
+        VERSION=${{ steps.doxygen-version.outputs.version }}
         /usr/sbin/diskutil rename image Doxygen
         hdiutil detach image
 
-        hdiutil convert -format UDCO -o installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg macos/template.sparseimage
-        xattr -c installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
+        hdiutil convert -format UDCO -o installer/Doxygen-$VERSION-${{ matrix.cpu }}.dmg macos/template.sparseimage
+        xattr -c installer/Doxygen-$VERSION-${{ matrix.cpu }}.dmg
 
-        # create zip with binaries
-        mkdir -p doxygen-${{ steps.doxygen-version.outputs.version }}
-        cp doxygen/build/bin/doxygen        doxygen-${{ steps.doxygen-version.outputs.version }}
-        cp doxygen/build/bin/doxyindexer    doxygen-${{ steps.doxygen-version.outputs.version }}
-        cp doxygen/build/bin/doxysearch.cgi doxygen-${{ steps.doxygen-version.outputs.version }}
-        xattr -c -r doxygen-${{ steps.doxygen-version.outputs.version }}
-        zip -r installer/doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip doxygen-${{ steps.doxygen-version.outputs.version }}
-      shell: bash
+        # Create zip with binaries
+        mkdir -p doxygen-$VERSION
+        cp doxygen/build/bin/doxygen        doxygen-$VERSION
+        cp doxygen/build/bin/doxyindexer    doxygen-$VERSION
+        cp doxygen/build/bin/doxysearch.cgi doxygen-$VERSION
+        xattr -c -r doxygen-$VERSION
+        zip -r installer/doxygen-$VERSION-mac-${{ matrix.cpu }}.zip doxygen-$VERSION
+
+#------------------------------------- Notarize the Doxygen executables for macOS
 
     - name: Notarization and Stapling (macOS)
       if: runner.os == 'macOS' && github.repository == 'doxygen/doxygen-release' # Do not run signing step on forks
@@ -1498,20 +1506,21 @@ jobs:
         MACOS_SIGNID: ${{ secrets.MACOS_SIGNID }}
         MACOS_NOTARIZATION_USER: ${{ secrets.MACOS_NOTARIZATION_USER }}
         MACOS_NOTARIZATION_PWD: ${{ secrets.MACOS_NOTARIZATION_PWD }}
+      shell: bash
       run: |
         xcrun notarytool submit installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg --apple-id $MACOS_NOTARIZATION_USER --team-id $MACOS_SIGNID --password $MACOS_NOTARIZATION_PWD --output-format json --wait
         xcrun stapler staple installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
-      shell: bash
+
+#------------------------------------- Create Doxygen installation artifacts for Linux
 
     - name: Create installer (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         VERSION=${{ steps.doxygen-version.outputs.version }}
-
-        # create installer dir
         mkdir -p installer/doxygen-$VERSION
 
-        # create source package
+        # Create source package
         tar -C doxygen --exclude bin -c -f doxygen-$VERSION.src.tar \
           doc doc_internal deps vhdlparser libxml libversion examples addon src testing templates cmake \
           CMakeLists.txt BUILD.txt INSTALL LANGUAGE.HOWTO LICENSE README.md VERSION
@@ -1522,13 +1531,13 @@ jobs:
         rm -rf doxygen-$VERSION
         cd ..
 
-        # create PDF version of the manual
+        # Create PDF version of the manual
         cp doxygen/build/latex/doxygen_manual.pdf installer/doxygen_manual-$VERSION.pdf
         cd installer
         zip -m doxygen_manual-$VERSION.pdf.zip doxygen_manual-$VERSION.pdf
         cd ..
 
-        # create binary package for Linux
+        # Create binary package for Linux
         DESTDIR=package/doxygen-$VERSION
         mkdir -p $DESTDIR
         cat linux/README.bin | sed -e "s/\$VERSION/$VERSION/g" -e "s/\$DATE/`date +\"%d %B %Y\"`/g" >$DESTDIR/README
@@ -1547,9 +1556,8 @@ jobs:
         cp doxygen/build/man/*.1 $DESTDIR/man/man1
         gzip $DESTDIR/man/man1/*
         tar -C package -z -c -v -f installer/doxygen-$VERSION.linux.bin.tar.gz doxygen-$VERSION
-      shell: bash
 
-#------------------------------------- upload individual artifacts
+#------------------------------------- Upload individual artifacts
 
     - name: Upload Doxygen build (Windows/setup.exe)
       if: runner.os == 'Windows'
@@ -1606,4 +1614,3 @@ jobs:
       with:
         name: doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
-
