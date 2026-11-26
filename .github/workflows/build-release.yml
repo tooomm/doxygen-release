@@ -30,9 +30,9 @@ env:
   BUILD_TYPE: Release
   # LLVM_VERSION is defined in the LLVM and Doxygen job matrices as Ubuntu has only older versions available in main
   # See https://ubuntu.com/developers/docs/reference/availability/llvm/ and https://releases.llvm.org/
-  QT6_VERSION: 6.10.3   # https://wiki.qt.io/Qt_6.10_Release
-  XAPIAN_VERSION: 2.1.0 # https://xapian.org/
-  ZLIB_VERSION: 1.4     # https://www.zlib.net/
+  QT6_VERSION: 6.10.3    # https://wiki.qt.io/Qt_6.10_Release
+  XAPIAN_VERSION: 1.4.32 # https://xapian.org/
+  ZLIB_VERSION: 1.4      # https://www.zlib.net/
   # SignPath (https://signpath.io) is used to code sign the Windows executables.
   # These values identify the SignPath organization/project/artifact-configuration
   # and can be overridden via repository variables, no workflow changes needed.
