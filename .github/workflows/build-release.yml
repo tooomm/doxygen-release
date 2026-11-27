@@ -406,36 +406,7 @@ jobs:
       shell: bash
       run: |
         cd "xapian/xapian-core-$XAPIAN_VERSION"
-        cat <<- 'EOF' > run_me.sh
-        export CC="cl -nologo"
-        export CXX="./compile cl -nologo"
-        export CXXFLAGS="-EHsc"
-        export AR="lib"
-        export LD="link"
-        export NM="dumpbin"
-        export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
-        export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
-        export PREFIX_UNIX="$(cygpath -u "$PREFIX")"
-        echo "prefix=$PREFIX_UNIX"
-        ./configure \
-          --enable-static=yes \
-          --enable-shared=no \
-          --prefix="$PREFIX_UNIX"
-        EOF
-        chmod 755 run_me.sh
-        echo "===="
-        cat run_me.sh
-        echo "===="
 
-    - name: Configure Xapian (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-            - name: Write configuration script for Xapian (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        cd "xapian/xapian-core-$XAPIAN_VERSION"
         cat <<-'EOF' > run_me.sh
         export CC="cl -nologo"
         export CXX="./compile cl -nologo"
@@ -455,6 +426,7 @@ jobs:
           --enable-shared=no \
           --prefix="$PREFIX_UNIX"
         EOF
+
         chmod 755 run_me.sh
         echo "==== run_me.sh ===="
         cat run_me.sh
@@ -470,9 +442,8 @@ jobs:
         export PREFIX="$(cygpath -w "$GITHUB_WORKSPACE/xapian-install")"
         export MSYS2_PATH_TYPE=inherit
         export PREFIX_UNIX="$(cygpath -u "$PREFIX")"
-        # bash ./run_me.sh
 
-        # Put MSVC tools ahead of MSYS2/Git for the configure step
+        # Put MSVC tools ahead of MSYS2/Git for the configure step.
         MSVC_BIN="$(dirname "$(command -v cl)")"
         export PATH="$MSVC_BIN:$PATH"
 
