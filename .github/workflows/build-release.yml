@@ -159,11 +159,16 @@ jobs:
       if: steps.cache-llvm-install.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        echo "Downloading LLVM ${{ matrix.llvm_version }}..."
-        git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
+        echo "Download LLVM ${{ matrix.llvm_version }}..."
+
+        # git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
+        # cd llvm-project
+        # git sparse-checkout set cmake clang llvm third-party/siphash
+        # echo "Sparse checkout of llvm folder (and other requried ones) completed successfully"
+
+        git clone --depth 1 --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
         cd llvm-project
-        git sparse-checkout set cmake clang llvm third-party/siphash
-        echo "Sparse checkout of llvm folder (and other requried ones) completed successfully"
+        echo "Download completed successfully"
 
 #------------------------------------- Configure LLVM build system for Linux/macOS + compile
 
@@ -339,7 +344,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        echo "Downloading zlib $ZLIB_VERSION..."
+        echo "Download & extract zlib $ZLIB_VERSION..."
         if ! curl -fsSL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"; then
             echo "Download failed"
             rm -f zlib.tgz
@@ -347,6 +352,7 @@ jobs:
         fi
         tar -xzf zlib.tgz
         rm zlib.tgz
+        echo "OK"
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
@@ -383,7 +389,7 @@ jobs:
         ARCHIVE="xapian-core-$VERSION.tar.xz"
         mkdir xapian
         cd xapian
-        echo "Downloading Xapian $VERSION..."
+        echo "Download & extract Xapian $VERSION..."
         if ! curl -fsSL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"; then
             echo "Download failed"
             rm -f "$ARCHIVE"
@@ -391,6 +397,7 @@ jobs:
         fi
         tar -Jxf "$ARCHIVE"
         rm "$ARCHIVE"
+        echo "OK"
 
 #------------------------------------- Configure Xapian build for Linux/macOS + compile
 
@@ -430,16 +437,19 @@ jobs:
         export NM="dumpbin"
         export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
         export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
-        export PREFIX_UNIX="$(cygpath $PREFIX)"
+        export PREFIX_UNIX="$(cygpath "$PREFIX")"
         echo "prefix=$PREFIX_UNIX"
-        ./configure --enable-static=yes --enable-shared=no --prefix=$PREFIX_UNIX
+        ./configure --enable-static=yes --enable-shared=no --prefix="$PREFIX_UNIX"
+        make SHELL=/usr/bin/sh
+        make install SHELL=/usr/bin/sh
         EOF
+
         chmod 755 run_me.sh
         echo "=== run_me.sh ==="
         cat run_me.sh
         echo "===="
 
-    - name: Configure Xapian (Windows)
+    - name: Configure, build & install Xapian (Windows)
       if: runner.os == 'Windows'
       shell: cmd
       run: |
@@ -450,14 +460,6 @@ jobs:
         set PREFIX=${{ github.workspace }}\xapian-install
         set MSYS2_PATH_TYPE=inherit
         bash -c "./run_me.sh"
-
-    - name: Build & install Xapian (Windows)
-      if: runner.os == 'Windows'
-      shell: bash
-      run: |
-        cd "xapian/xapian-core-$XAPIAN_VERSION"
-        make
-        make install
 
 #------------------------------------- Verify Xapian build results and installation output
 
@@ -595,7 +597,7 @@ jobs:
         mkdir -p qt6-source
         cd qt6-source
 
-        echo "Downloading qtbase module..."
+        echo "Download & extract qtbase module..."
         if ! curl -fsSL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qtbase.tar.xz
@@ -604,8 +606,9 @@ jobs:
         tar -Jxf qtbase.tar.xz
         mv qtbase-everywhere-src-$VERSION qtbase
         rm qtbase.tar.xz
+        echo "OK"
 
-        echo "Downloading qtsvg module..."
+        echo "Download & extract qtsvg module..."
         if ! curl -fsSL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qtsvg.tar.xz
@@ -614,8 +617,9 @@ jobs:
         tar -Jxf qtsvg.tar.xz
         mv qtsvg-everywhere-src-$VERSION qtsvg
         rm qtsvg.tar.xz
+        echo "OK"
 
-        echo "Downloading qttranslations module..."
+        echo "Download & extract qttranslations module..."
         if ! curl -fsSL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qttranslations.tar.xz
@@ -624,8 +628,9 @@ jobs:
         tar -Jxf qttranslations.tar.xz
         mv qttranslations-everywhere-src-$VERSION qttranslations
         rm qttranslations.tar.xz
+        echo "OK"
 
-        echo "Downloading qttools module..."
+        echo "Download & extract qttools module..."
         if ! curl -fsSL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qttools.tar.xz
@@ -634,6 +639,7 @@ jobs:
         tar -Jxf qttools.tar.xz
         mv qttools-everywhere-src-$VERSION qttools
         rm qttools.tar.xz
+        echo "OK"
 
         if [ ! -d "qtbase" ] || [ ! -d "qtsvg" ] || [ ! -d "qttranslations" ] || [ ! -d "qttools" ]; then
           echo "Error: Qt6 source download failed or directory structure is incorrect"
@@ -948,12 +954,13 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # echo "Downloading htmlhelp..."
+        # echo "Download htmlhelp..."
         # if ! curl -fsSL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe; then
         #   echo "Download failed"
         #   rm -f windows/htmlhelp.exe
         #   exit 1
         # fi
+        # echo "OK"
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 
     - name: Verify hhc.exe is installed
@@ -992,7 +999,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        echo "Downloading zlib $ZLIB_VERSION..."
+        echo "Download & extract zlib $ZLIB_VERSION..."
         if ! curl -fsSL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"; then
             echo "Download failed"
             rm -f zlib.tgz
@@ -1000,6 +1007,7 @@ jobs:
         fi
         tar -xzf zlib.tgz
         rm zlib.tgz
+        echo "OK"
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
