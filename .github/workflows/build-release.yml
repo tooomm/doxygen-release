@@ -1579,7 +1579,6 @@ jobs:
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe
         archive: false
 
@@ -1587,7 +1586,6 @@ jobs:
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip
         archive: false
 
@@ -1595,7 +1593,6 @@ jobs:
       if: runner.os == 'Windows'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen_manual-${{ steps.doxygen-version.outputs.version }}.chm.zip
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.chm.zip
         archive: false
 
@@ -1603,7 +1600,6 @@ jobs:
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v6
       with:
-        name: Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
         path: installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
         archive: false
 
@@ -1611,7 +1607,6 @@ jobs:
       if: runner.os == 'macOS'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip
         archive: false
 
@@ -1619,7 +1614,6 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen-${{ steps.doxygen-version.outputs.version }}.src.tar.gz
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.src.tar.gz
         archive: false
 
@@ -1627,7 +1621,6 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen-${{ steps.doxygen-version.outputs.version }}.linux.bin.tar.gz
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.linux.bin.tar.gz
         archive: false
 
@@ -1635,6 +1628,5 @@ jobs:
       if: runner.os == 'Linux'
       uses: actions/upload-artifact@v6
       with:
-        name: doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
         archive: false
