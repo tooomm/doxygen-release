@@ -54,7 +54,7 @@ jobs:
 
   delete-caches:
     name: Delete caches
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-slim # https://github.com/actions/runner-images/blob/main/images/ubuntu-slim/ubuntu-slim-Readme.md
     if: github.event_name == 'workflow_dispatch' && inputs.rebuild_caches == true
     # 'actions: write' permission is required to clear caches
     permissions:
@@ -88,7 +88,7 @@ jobs:
 
   build-llvm:
     name: LLVM (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} # https://github.com/actions/runner-images#available-images
     needs:
       - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
@@ -163,7 +163,7 @@ jobs:
         git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
         cd llvm-project
         git sparse-checkout set llvm
-        echo "LLVM sparse checkout completed successfully"
+        echo "Sparse checkout of llvm folder completed successfully"
 
 #------------------------------------- Configure LLVM build system for Linux/macOS + compile
 
@@ -280,7 +280,7 @@ jobs:
 
   build-xapian:
     name: Xapian (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} # https://github.com/actions/runner-images#available-images
     needs:
       - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
@@ -334,6 +334,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
+        echo "Downloading zlib $ZLIB_VERSION..."
         curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
@@ -376,7 +377,6 @@ jobs:
         curl -fL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
         tar -Jxf "$ARCHIVE"
         rm "$ARCHIVE"
-        echo "Xapian source downloaded successfully"
 
 #------------------------------------- Configure Xapian build for Linux/macOS + compile
 
@@ -487,7 +487,7 @@ jobs:
 
   build-qt6:
     name: Qt6 (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} # https://github.com/actions/runner-images#available-images
     needs:
       - 'delete-caches'
     if: ${{ !cancelled() && (needs.delete-caches.result == 'success' || needs.delete-caches.result == 'skipped') }}
@@ -577,31 +577,31 @@ jobs:
       run: |
         VERSION="$QT6_VERSION"
         MAJOR_MINOR=$(echo "$VERSION" | cut -d. -f1-2)
-        BASE_URL="https://download.qt.io/official_releases/qt/${MAJOR_MINOR}/${VERSION}/submodules"
-        ARCHIVE_APPENDIX="everywhere-src-${VERSION}.tar.xz"
+        BASE_URL="https://download.qt.io/official_releases/qt/$MAJOR_MINOR/$VERSION/submodules"
+        echo "Downloading Qt6 $VERSION..."
         mkdir -p qt6-source
         cd qt6-source
 
         echo "Downloading qtbase module..."
-        curl -fL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-$ARCHIVE_APPENDIX"
+        curl -fL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"
         tar -xf qtbase.tar.xz
         mv qtbase-everywhere-src-$VERSION qtbase
         rm qtbase.tar.xz
 
         echo "Downloading qtsvg module..."
-        curl -fL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-$ARCHIVE_APPENDIX"
+        curl -fL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"
         tar -xf qtsvg.tar.xz
         mv qtsvg-everywhere-src-$VERSION qtsvg
         rm qtsvg.tar.xz
 
         echo "Downloading qttranslations module..."
-        curl -fL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-$ARCHIVE_APPENDIX"
+        curl -fL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"
         tar -xf qttranslations.tar.xz
         mv qttranslations-everywhere-src-$VERSION qttranslations
         rm qttranslations.tar.xz
 
         echo "Downloading qttools module..."
-        curl -fL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-$ARCHIVE_APPENDIX"
+        curl -fL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"
         tar -xf qttools.tar.xz
         mv qttools-everywhere-src-$VERSION qttools
         rm qttools.tar.xz
@@ -738,7 +738,7 @@ jobs:
 
   build-doxygen:
     name: Doxygen (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }} # https://github.com/actions/runner-images#available-images
     needs:
       - 'build-llvm'
       - 'build-xapian'
@@ -958,6 +958,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
+        echo "Downloading zlib $ZLIB_VERSION..."
         curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
