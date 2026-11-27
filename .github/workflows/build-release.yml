@@ -431,19 +431,60 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
+            - name: Write configuration script for Xapian (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
+        cd "xapian/xapian-core-$XAPIAN_VERSION"
+        cat <<-'EOF' > run_me.sh
+        export CC="cl -nologo"
+        export CXX="./compile cl -nologo"
+        export CXXFLAGS="-EHsc"
+        export AR="lib"
+        export LD="link"
+        export NM="dumpbin"
+        export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
+        export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
+
+        echo "=== Environment inside run_me.sh ==="
+        printf 'PREFIX_UNIX=<%s>\n' "$PREFIX_UNIX"
+        type -a cl link lib dumpbin || true
+
+        ./configure \
+          --enable-static=yes \
+          --enable-shared=no \
+          --prefix="$PREFIX_UNIX"
+        EOF
+        chmod 755 run_me.sh
+        echo "==== run_me.sh ===="
+        cat run_me.sh
+        echo "===="
+
+    - name: Configure Xapian (Windows)
+      if: runner.os == 'Windows'
+      shell: bash
+      run: |
         cd "xapian/xapian-core-$XAPIAN_VERSION"
         export PATH="/c/msys64/usr/bin:$PATH"
         export LIB="$(cygpath -w "$PWD/../../zlib-$ZLIB_VERSION")${LIB:+;$LIB}"
-        export PREFIX="$(cygpath -w "${{ github.workspace }}/xapian-install")"
+        export PREFIX="$(cygpath -w "$GITHUB_WORKSPACE/xapian-install")"
         export MSYS2_PATH_TYPE=inherit
+        export PREFIX_UNIX="$(cygpath -u "$PREFIX")"
         # bash ./run_me.sh
+
+        # Put MSVC tools ahead of MSYS2/Git for the configure step
+        MSVC_BIN="$(dirname "$(command -v cl)")"
+        export PATH="$MSVC_BIN:$PATH"
 
         echo "=== Compiler and linker resolution ==="
         type -a cl link lib dumpbin cygpath || true
-        where.exe cl link lib dumpbin || true
+        printf 'cl=<%s>\nlink=<%s>\nlib=<%s>\ndumpbin=<%s>\n' \
+          "$(command -v cl)" "$(command -v link)" \
+          "$(command -v lib)" "$(command -v dumpbin)"
 
         echo "=== Prefix conversion ==="
-        cygpath -u "$PREFIX"
+        printf 'PREFIX=<%s>\nPREFIX_UNIX=<%s>\n' "$PREFIX" "$PREFIX_UNIX"
+        cygpath -w "$PREFIX_UNIX"
 
         if bash ./run_me.sh; then
           :
@@ -451,6 +492,8 @@ jobs:
           status=$?
           echo "=== Xapian config.log (last 120 lines) ==="
           tail -n 120 config.log || true
+          echo "=== C compiler test commands and errors ==="
+          grep -n -A20 -B10 -E 'conftest|cannot compute|link|cl.exe|error' config.log | tail -n 200 || true
           exit "$status"
         fi
 
