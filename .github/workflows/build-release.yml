@@ -204,37 +204,37 @@ jobs:
 
     - name: Configure LLVM build (Windows)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cmake -S llvm-project\llvm -B llvm-project\build ^
-          -G Ninja ^
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
-          -DLLVM_ENABLE_PROJECTS="clang;lld" ^
-          -DLIBCLANG_BUILD_STATIC=ON ^
-          -DLLVM_ENABLE_OCAMLDOC=OFF ^
-          -DLLVM_ENABLE_LTO=OFF ^
-          -DLLVM_ENABLE_WARNINGS=OFF ^
-          -DLLVM_ENABLE_Z3_SOLVER=OFF ^
-          -DLLVM_ENABLE_ZSTD=OFF ^
-          -DLLVM_ENABLE_ZLIB=OFF ^
-          -DLLVM_ENABLE_BINDING=OFF ^
-          -DLLVM_ENABLE_LIBXML2=OFF ^
-          -DLLVM_ENABLE_LIBEDIT=OFF ^
-          -DLLVM_ENABLE_ASSERTIONS=OFF ^
-          -DLLVM_INCLUDE_BENCHMARKS=OFF ^
-          -DLLVM_INCLUDE_TESTS=OFF ^
-          -DLLVM_INCLUDE_EXAMPLES=OFF ^
-          -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF ^
-          -DLLVM_PARALLEL_LINK_JOBS=1 ^
-          -DLLVM_USE_CRT_RELEASE=MT ^
-          -DLLVM_TARGETS_TO_BUILD="X86;AArch64" ^
+        cmake -S llvm-project/llvm -B llvm-project/build \
+          -G Ninja \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DLLVM_ENABLE_PROJECTS="clang;lld" \
+          -DLIBCLANG_BUILD_STATIC=ON \
+          -DLLVM_ENABLE_OCAMLDOC=OFF \
+          -DLLVM_ENABLE_LTO=OFF \
+          -DLLVM_ENABLE_WARNINGS=OFF \
+          -DLLVM_ENABLE_Z3_SOLVER=OFF \
+          -DLLVM_ENABLE_ZSTD=OFF \
+          -DLLVM_ENABLE_ZLIB=OFF \
+          -DLLVM_ENABLE_BINDING=OFF \
+          -DLLVM_ENABLE_LIBXML2=OFF \
+          -DLLVM_ENABLE_LIBEDIT=OFF \
+          -DLLVM_ENABLE_ASSERTIONS=OFF \
+          -DLLVM_INCLUDE_BENCHMARKS=OFF \
+          -DLLVM_INCLUDE_TESTS=OFF \
+          -DLLVM_INCLUDE_EXAMPLES=OFF \
+          -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF \
+          -DLLVM_PARALLEL_LINK_JOBS=1 \
+          -DLLVM_USE_CRT_RELEASE=MT \
+          -DLLVM_TARGETS_TO_BUILD="X86;AArch64" \
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
 
     - name: Build & install LLVM (Windows)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd llvm-project\build
+        cd llvm-project/build
         cmake --build . --parallel
         cmake --install . --prefix llvm-install
 
@@ -331,18 +331,18 @@ jobs:
 
     - name: Download zlib (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        curl -fL --retry 3 -o "zlib.tgz" "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd zlib-$ZLIB_VERSION
-        @rem nmake -f win32\Makefile.msc LOC="-MT" all
-        nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
+        cd "zlib-$ZLIB_VERSION"
+        # nmake -f win32/Makefile.msc LOC="-MT" all
+        nmake -f win32/Makefile.msc LOC="-MT" zlib.lib
 
     - name: Install MSYS2 (Windows)
       uses: msys2/setup-msys2@v2
@@ -428,21 +428,20 @@ jobs:
 
     - name: Configure Xapian (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        @echo on
-        cd xapian\xapian-core-$XAPIAN_VERSION
-        set PATH=C:\msys64\usr\bin;%PATH%
-        set LIB=..\..\zlib-$ZLIB_VERSION;%LIB%
-        set PREFIX=${{ github.workspace }}\xapian-install
-        set MSYS2_PATH_TYPE=inherit
-        bash -c "./run_me.sh"
+        cd "xapian/xapian-core-$XAPIAN_VERSION"
+        export PATH="/c/msys64/usr/bin:$PATH"
+        export LIB="$(cygpath -w "$PWD/../../zlib-$ZLIB_VERSION")${LIB:+;$LIB}"
+        export PREFIX="$(cygpath -w "$GITHUB_WORKSPACE/xapian-install")"
+        export MSYS2_PATH_TYPE=inherit
+        bash ./run_me.sh
 
     - name: Build & install Xapian (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd xapian\xapian-core-$XAPIAN_VERSION
+        cd xapian/xapian-core-$XAPIAN_VERSION
         make
         make install
 
@@ -663,37 +662,37 @@ jobs:
 
     - name: Configure CMake for Qt6 Base (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd qt6-source\qtbase
-        call configure.bat -static -static-runtime -release -prefix ${{ github.workspace }}\qt6-install -platform win32-msvc -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -sql-odbc -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
+        cd qt6-source/qtbase
+        call configure.bat -static -static-runtime -release -prefix ${{ github.workspace }}/qt6-install -platform win32-msvc -qt-zlib -qt-pcre -qt-libpng -qt-libjpeg -qt-freetype -opengl desktop -sql-sqlite -sql-odbc -no-openssl -opensource -confirm-license -make libs -nomake tools -nomake tests
         cmake --build . --parallel
         cmake --install .
 
     - name: Configure CMake for Qt6 tools (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd qt6-source\qttools
-        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
+        cd qt6-source/qttools
+        call ${{ github.workspace }}/qt6-install/bin/qt-configure-module.bat .
         cmake --build . --parallel
         cmake --install .
 
     - name: Configure CMake for Qt6 SVG (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd qt6-source\qtsvg
-        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
+        cd qt6-source/qtsvg
+        call ${{ github.workspace }}/qt6-install/bin/qt-configure-module.bat .
         cmake --build . --parallel
         cmake --install .
 
     - name: Configure CMake for Qt6 translations (Windows)
       if: steps.cache-qt6-install.outputs.cache-hit != 'true' && runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd qt6-source\qttranslations
-        call ${{ github.workspace }}\qt6-install\bin\qt-configure-module.bat .
+        cd qt6-source/qttranslations
+        call ${{ github.workspace }}/qt6-install/bin/qt-configure-module.bat .
         cmake --build . --parallel
         cmake --install .
 
@@ -958,16 +957,16 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        curl -fL --retry 3 -o "zlib.tgz" "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd zlib-$ZLIB_VERSION
-        @rem nmake -f win32\Makefile.msc LOC="-MT" all
-        nmake -f win32\Makefile.msc LOC="-MT" zlib.lib
+        cd "zlib-$ZLIB_VERSION"
+        # nmake -f win32/Makefile.msc LOC="-MT" all
+        nmake -f win32/Makefile.msc LOC="-MT" zlib.lib
 
 #------------------------------------- Determine version of Doxygen to use
 
@@ -1172,29 +1171,29 @@ jobs:
 
     - name: Configure CMake for Doxygen (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cmake -S doxygen -B doxygen/build ^
-          -G Ninja ^
-          -Dwin_static=YES ^
-          -Dbuild_search=YES ^
-          -Dbuild_wizard=YES ^
-          -Duse_libclang=YES ^
-          -Dstatic_libclang=YES ^
-          -Dforce_qt=Qt6 ^
-          -Dbuild_doc=YES ^
-          -Dbuild_doc_chm=YES ^
-          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ^
-          -DXAPIAN_LIBRARIES=${{ github.workspace }}\xapian-install\lib\xapian.lib ^
-          -DXAPIAN_INCLUDE_DIR=${{ github.workspace }}\xapian-install\include ^
-          -DLLVM_DIR=${{ github.workspace }}\llvm-install\lib\cmake\llvm ^
-          -DClang_DIR=${{ github.workspace }}\llvm-install\lib\cmake\clang ^
-          -DCLANG_LIBS=${{ github.workspace }}\llvm-install\lib\libclang.lib ^
-          -DQt6_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6 ^
-          -DQt6Core_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Core ^
-          -DQt6Gui_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Gui ^
-          -DQt6Widgets_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Widgets ^
-          -DZLIB_LIBRARY=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\zlib.lib ^
+        cmake -S doxygen -B doxygen/build \
+          -G Ninja \
+          -Dwin_static=YES \
+          -Dbuild_search=YES \
+          -Dbuild_wizard=YES \
+          -Duse_libclang=YES \
+          -Dstatic_libclang=YES \
+          -Dforce_qt=Qt6 \
+          -Dbuild_doc=YES \
+          -Dbuild_doc_chm=YES \
+          -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DXAPIAN_LIBRARIES=${{ github.workspace }}\xapian-install\lib\xapian.lib \
+          -DXAPIAN_INCLUDE_DIR=${{ github.workspace }}\xapian-install\include \
+          -DLLVM_DIR=${{ github.workspace }}\llvm-install\lib\cmake\llvm \
+          -DClang_DIR=${{ github.workspace }}\llvm-install\lib\cmake\clang \
+          -DCLANG_LIBS=${{ github.workspace }}\llvm-install\lib\libclang.lib \
+          -DQt6_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6 \
+          -DQt6Core_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Core \
+          -DQt6Gui_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Gui \
+          -DQt6Widgets_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Widgets \
+          -DZLIB_LIBRARY=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\zlib.lib \
           -DZLIB_INCLUDE_DIR=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\include
 
 #------------------------------------- Build Doxygen targets + install
@@ -1237,24 +1236,24 @@ jobs:
 
     - name: Build Doxygen (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd doxygen\build
+        cd doxygen/build
         cmake --build . --parallel
 
     - name: Build Doxygen docs (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd doxygen\build
+        cd doxygen/build
         cmake --build . --parallel 2 --target docs
         cmake --build . --parallel 2 --target docs_chm    # will they run in parallel to each other? otherwise no reason to reduce to npocmax/2 for each?
 
     - name: Install Doxygen (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
-        cd doxygen\build
+        cd doxygen/build
         cmake --install . --path doxygen-install
 
 #------------------------------------- Verify Doxygen build results
@@ -1270,11 +1269,12 @@ jobs:
 
     - name: Verify Doxygen build (Windows)
       if: runner.os == 'Windows'
-      shell: cmd
+      shell: bash
       run: |
         echo "Checking Doxygen binary..."
-        ls -lh ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }}
-        ${{ github.workspace }}\doxygen-install\bin\doxygen${{ matrix.extension }} --version || echo "Note: doxygen version check failed"
+        DOXYGEN_PATH="${{ github.workspace }}/doxygen-install/bin/doxygen${{ matrix.extension }}"
+        ls -lh $DOXYGEN_PATH
+        $DOXYGEN_PATH --version || echo "Note: doxygen version check failed"
 
 #------------------------------------- Create Doxygen installation artifacts for Windows
 
