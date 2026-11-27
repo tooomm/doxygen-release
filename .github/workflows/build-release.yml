@@ -1059,7 +1059,7 @@ jobs:
 #------------------------------------- Prepare LLVM libclang dependency for Doxygen
 #
     - name: Download LLVM artifacts
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}
         path: llvm-artifact
@@ -1086,7 +1086,7 @@ jobs:
 #------------------------------------- Prepare Qt dependency for Doxygen
 
     - name: Download Qt6 artifacts
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}
         path: qt6-artifact
@@ -1113,7 +1113,7 @@ jobs:
 #------------------------------------- Prepare Xapian dependency for Doxygen
 
     - name: Download Xapian artifact
-      uses: actions/download-artifact@v7
+      uses: actions/download-artifact@v8
       with:
         name: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}
         path: xapian-artifact
