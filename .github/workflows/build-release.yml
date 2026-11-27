@@ -876,7 +876,7 @@ jobs:
 
     - name: Install MikTeX (Windows)
       if: runner.os == 'Windows'
-      uses: nick-invision/retry@v3
+      uses: nick-invision/retry@v4
       with:
         timeout_minutes: 15
         max_attempts: 5
