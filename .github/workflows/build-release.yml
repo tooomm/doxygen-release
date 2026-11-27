@@ -333,7 +333,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        curl -fL --retry 3 -o "zlib.tgz" "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
@@ -433,7 +433,7 @@ jobs:
         cd "xapian/xapian-core-$XAPIAN_VERSION"
         export PATH="/c/msys64/usr/bin:$PATH"
         export LIB="$(cygpath -w "$PWD/../../zlib-$ZLIB_VERSION")${LIB:+;$LIB}"
-        export PREFIX="$(cygpath -w "$GITHUB_WORKSPACE/xapian-install")"
+        export PREFIX="$(cygpath -w "${{ github.workspace }}/xapian-install")"
         export MSYS2_PATH_TYPE=inherit
         bash ./run_me.sh
 
@@ -957,7 +957,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        curl -fL --retry 3 -o "zlib.tgz" "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar zxvf zlib.tgz
 
     - name: Build zlib (Windows)
@@ -1184,17 +1184,17 @@ jobs:
           -Dbuild_doc=YES \
           -Dbuild_doc_chm=YES \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DXAPIAN_LIBRARIES=${{ github.workspace }}\xapian-install\lib\xapian.lib \
-          -DXAPIAN_INCLUDE_DIR=${{ github.workspace }}\xapian-install\include \
-          -DLLVM_DIR=${{ github.workspace }}\llvm-install\lib\cmake\llvm \
-          -DClang_DIR=${{ github.workspace }}\llvm-install\lib\cmake\clang \
-          -DCLANG_LIBS=${{ github.workspace }}\llvm-install\lib\libclang.lib \
-          -DQt6_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6 \
-          -DQt6Core_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Core \
-          -DQt6Gui_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Gui \
-          -DQt6Widgets_DIR=${{ github.workspace }}\qt6-install\lib\cmake\Qt6Widgets \
-          -DZLIB_LIBRARY=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\zlib.lib \
-          -DZLIB_INCLUDE_DIR=${{ github.workspace }}\zlib-${{ env.ZLIB_VERSION }}\include
+          -DXAPIAN_LIBRARIES=${{ github.workspace }}/xapian-install/lib/xapian.lib \
+          -DXAPIAN_INCLUDE_DIR=${{ github.workspace }}/xapian-install/include \
+          -DLLVM_DIR=${{ github.workspace }}/llvm-install/lib/cmake/llvm \
+          -DClang_DIR=${{ github.workspace }}/llvm-install/lib/cmake/clang \
+          -DCLANG_LIBS=${{ github.workspace }}/llvm-install/lib/libclang.lib \
+          -DQt6_DIR=${{ github.workspace }}/qt6-install/lib/cmake/Qt6 \
+          -DQt6Core_DIR=${{ github.workspace }}/qt6-install/lib/cmake/Qt6Core \
+          -DQt6Gui_DIR=${{ github.workspace }}/qt6-install/lib/cmake/Qt6Gui \
+          -DQt6Widgets_DIR=${{ github.workspace }}/qt6-install/lib/cmake/Qt6Widgets \
+          -DZLIB_LIBRARY=${{ github.workspace }}/zlib-${{ env.ZLIB_VERSION }}/zlib.lib \
+          -DZLIB_INCLUDE_DIR=${{ github.workspace }}/zlib-${{ env.ZLIB_VERSION }}/include
 
 #------------------------------------- Build Doxygen targets + install
 
