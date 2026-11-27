@@ -335,8 +335,8 @@ jobs:
       shell: bash
       run: |
         echo "Downloading zlib $ZLIB_VERSION..."
-        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
-        tar zxvf zlib.tgz
+        curl -fL --retry 3 --progress-bar -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        tar -xzf zlib.tgz
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
@@ -374,7 +374,7 @@ jobs:
         echo "Downloading Xapian $VERSION..."
         mkdir xapian
         cd xapian
-        curl -fL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
+        curl -fL --retry 3 --progress-bar -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
         tar -Jxf "$ARCHIVE"
         rm "$ARCHIVE"
 
@@ -405,7 +405,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: bash
       run: |
-        cd xapian/xapian-core-$XAPIAN_VERSION
+        cd "xapian/xapian-core-$XAPIAN_VERSION"
         cat <<- 'EOF' > run_me.sh
         export CC="cl -nologo"
         export CXX="./compile cl -nologo"
@@ -415,12 +415,12 @@ jobs:
         export NM="dumpbin"
         export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
         export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
-        export PREFIX_UNIX="$(cygpath $PREFIX)"
+        export PREFIX_UNIX="$(cygpath -u "$PREFIX")"
         echo "prefix=$PREFIX_UNIX"
         ./configure \
           --enable-static=yes \
           --enable-shared=no \
-          --prefix=$PREFIX_UNIX
+          --prefix="$PREFIX_UNIX"
         EOF
         chmod 755 run_me.sh
         echo "===="
@@ -436,7 +436,23 @@ jobs:
         export LIB="$(cygpath -w "$PWD/../../zlib-$ZLIB_VERSION")${LIB:+;$LIB}"
         export PREFIX="$(cygpath -w "${{ github.workspace }}/xapian-install")"
         export MSYS2_PATH_TYPE=inherit
-        bash ./run_me.sh
+        # bash ./run_me.sh
+
+        echo "=== Compiler and linker resolution ==="
+        type -a cl link lib dumpbin cygpath || true
+        where.exe cl link lib dumpbin || true
+
+        echo "=== Prefix conversion ==="
+        cygpath -u "$PREFIX"
+
+        if bash ./run_me.sh; then
+          :
+        else
+          status=$?
+          echo "=== Xapian config.log (last 120 lines) ==="
+          tail -n 120 config.log || true
+          exit "$status"
+        fi
 
     - name: Build & install Xapian (Windows)
       if: runner.os == 'Windows'
@@ -583,25 +599,25 @@ jobs:
         cd qt6-source
 
         echo "Downloading qtbase module..."
-        curl -fL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 --progress-bar -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"
         tar -xf qtbase.tar.xz
         mv qtbase-everywhere-src-$VERSION qtbase
         rm qtbase.tar.xz
 
         echo "Downloading qtsvg module..."
-        curl -fL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 --progress-bar -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"
         tar -xf qtsvg.tar.xz
         mv qtsvg-everywhere-src-$VERSION qtsvg
         rm qtsvg.tar.xz
 
         echo "Downloading qttranslations module..."
-        curl -fL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 --progress-bar -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"
         tar -xf qttranslations.tar.xz
         mv qttranslations-everywhere-src-$VERSION qttranslations
         rm qttranslations.tar.xz
 
         echo "Downloading qttools module..."
-        curl -fL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 --progress-bar -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"
         tar -xf qttools.tar.xz
         mv qttools-everywhere-src-$VERSION qttools
         rm qttools.tar.xz
@@ -919,7 +935,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # curl -fL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
+        # curl -fL --retry 3 --progress-bar -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 
     - name: Verify hhc.exe is installed
@@ -959,8 +975,8 @@ jobs:
       shell: bash
       run: |
         echo "Downloading zlib $ZLIB_VERSION..."
-        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
-        tar zxvf zlib.tgz
+        curl -fL --retry 3 --progress-bar -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        tar -xzf zlib.tgz
 
     - name: Build zlib (Windows)
       if: runner.os == 'Windows'
