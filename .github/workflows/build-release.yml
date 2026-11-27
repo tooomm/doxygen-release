@@ -29,7 +29,7 @@ permissions:
 env:
   BUILD_TYPE: Release
   # LLVM_VERSION is defined in the LLVM and Doxygen job matrices as Ubuntu has only older versions available in main
-  # See https://ubuntu.com/developers/docs/reference/availability/llvm/ and https://releases.llvm.org/
+  # See https://ubuntu.com/developers/docs/reference/availability/llvm/, https://releases.llvm.org/ and https://github.com/llvm/llvm-project/releases
   QT6_VERSION: 6.10.3    # https://wiki.qt.io/Qt_6.10_Release
   XAPIAN_VERSION: 1.4.32 # https://xapian.org/
   ZLIB_VERSION: 1.4      # https://www.zlib.net/
@@ -102,23 +102,23 @@ jobs:
           - os: ubuntu-22.04
             cpu: intel
             archive_format: tar.gz
-            llvm_version: 21.1.6
+            llvm_version: 21.1.8
           - os: ubuntu-22.04-arm
             cpu: arm
             archive_format: tar.gz
-            llvm_version: 21.1.6
+            llvm_version: 21.1.8
           - os: windows-2025
             cpu: intel
             archive_format: zip
-            llvm_version: 23.1.4
+            llvm_version: 23.1.6
           - os: macos-15 # why does webpage claim compatibility down to macOS 13 when all deps & Doxygen itself are build with macOS 15? https://www.doxygen.nl/download.html
             cpu: arm
             archive_format: tar.gz
-            llvm_version: 23.1.4
+            llvm_version: 23.1.6
           - os: macos-15-intel # why does webpage claim compatibility down to macOS 13 when all deps & Doxygen itself are build with macOS 15? https://www.doxygen.nl/download.html
             cpu: intel
             archive_format: tar.gz
-            llvm_version: 23.1.4
+            llvm_version: 23.1.6
 
 #------------------------------------- Job steps for LLVM
 
@@ -160,15 +160,7 @@ jobs:
       shell: bash
       run: |
         echo "Download LLVM ${{ matrix.llvm_version }}..."
-
-        # git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
-        # cd llvm-project
-        # git sparse-checkout set cmake clang llvm third-party/siphash
-        # echo "Sparse checkout of llvm folder (and other requried ones) completed successfully"
-
         git clone --depth 1 --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
-        cd llvm-project
-        echo "Download completed successfully"
 
 #------------------------------------- Configure LLVM build system for Linux/macOS + compile
 
@@ -795,23 +787,23 @@ jobs:
           - os: ubuntu-22.04
             cpu: intel
             extension: ""
-            llvm_version: 21.1.6
+            llvm_version: 21.1.8
           - os: ubuntu-22.04-arm
             cpu: arm
             extension: ""
-            llvm_version: 21.1.6
+            llvm_version: 21.1.8
           - os: windows-2025
             cpu: intel
             extension: .exe
-            llvm_version: 23.1.4
+            llvm_version: 23.1.6
           - os: macos-15
             cpu: arm
             extension: ""
-            llvm_version: 23.1.4
+            llvm_version: 23.1.6
           - os: macos-15-intel
             cpu: intel
             extension: ""
-            llvm_version: 23.1.4
+            llvm_version: 23.1.6
 
 #------------------------------------- Job steps for Doxygen
 
