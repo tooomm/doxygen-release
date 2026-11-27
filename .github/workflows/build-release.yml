@@ -335,7 +335,7 @@ jobs:
       shell: bash
       run: |
         echo "Downloading zlib $ZLIB_VERSION..."
-        curl -fL --retry 3 --progress-bar -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar -xzf zlib.tgz
 
     - name: Build zlib (Windows)
@@ -374,7 +374,7 @@ jobs:
         echo "Downloading Xapian $VERSION..."
         mkdir xapian
         cd xapian
-        curl -fL --retry 3 --progress-bar -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
+        curl -fL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
         tar -Jxf "$ARCHIVE"
         rm "$ARCHIVE"
 
@@ -414,8 +414,8 @@ jobs:
         export AR="lib"
         export LD="link"
         export NM="dumpbin"
-        export CPPFLAGS="-I../../zlib-${{ env.ZLIB_VERSION }}"
-        export LDFLAGS="-I../../zlib-${{ env.ZLIB_VERSION }}"
+        export CPPFLAGS="-I../../zlib-$ZLIB_VERSION"
+        export LDFLAGS="-I../../zlib-$ZLIB_VERSION"
         export PREFIX_UNIX="$(cygpath $PREFIX)"
         echo "prefix=$PREFIX_UNIX"
         ./configure --enable-static=yes --enable-shared=no --prefix=$PREFIX_UNIX
@@ -432,7 +432,7 @@ jobs:
         @echo on
         cd xapian\xapian-core-%XAPIAN_VERSION%
         set PATH=C:\msys64\usr\bin;%PATH%
-        set LIB=..\..\zlib-${{ env.ZLIB_VERSION }};%LIB%
+        set LIB=..\..\zlib-%ZLIB_VERSION%;%LIB%
         set PREFIX=${{ github.workspace }}\xapian-install
         set MSYS2_PATH_TYPE=inherit
         bash -c "./run_me.sh"
@@ -582,25 +582,25 @@ jobs:
         cd qt6-source
 
         echo "Downloading qtbase module..."
-        curl -fL --retry 3 --progress-bar -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"
         tar -xf qtbase.tar.xz
         mv qtbase-everywhere-src-$VERSION qtbase
         rm qtbase.tar.xz
 
         echo "Downloading qtsvg module..."
-        curl -fL --retry 3 --progress-bar -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"
         tar -xf qtsvg.tar.xz
         mv qtsvg-everywhere-src-$VERSION qtsvg
         rm qtsvg.tar.xz
 
         echo "Downloading qttranslations module..."
-        curl -fL --retry 3 --progress-bar -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"
         tar -xf qttranslations.tar.xz
         mv qttranslations-everywhere-src-$VERSION qttranslations
         rm qttranslations.tar.xz
 
         echo "Downloading qttools module..."
-        curl -fL --retry 3 --progress-bar -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"
+        curl -fL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"
         tar -xf qttools.tar.xz
         mv qttools-everywhere-src-$VERSION qttools
         rm qttools.tar.xz
@@ -918,7 +918,7 @@ jobs:
       if: runner.os == 'Windows'
       shell: pwsh
       run: |
-        # curl -fL --retry 3 --progress-bar -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
+        # curl -fL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
         ./windows/htmlhelp.exe /VERYSILENT /SUPPRESSMSGBOXES /NORESTART
 
     - name: Verify hhc.exe is installed
@@ -958,7 +958,7 @@ jobs:
       shell: bash
       run: |
         echo "Downloading zlib $ZLIB_VERSION..."
-        curl -fL --retry 3 --progress-bar -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        curl -fL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
         tar -xzf zlib.tgz
 
     - name: Build zlib (Windows)
