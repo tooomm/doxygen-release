@@ -162,7 +162,7 @@ jobs:
         echo "Downloading LLVM ${{ matrix.llvm_version }}..."
         git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
         cd llvm-project
-        git sparse-checkout set llvm cmake clang lld
+        git sparse-checkout set cmake clang llvm third-party/siphash
         echo "Sparse checkout of llvm folder (and other requried ones) completed successfully"
 
 #------------------------------------- Configure LLVM build system for Linux/macOS + compile
@@ -174,7 +174,7 @@ jobs:
         cmake -S llvm-project/llvm -B llvm-project/build \
           -G Ninja \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DLLVM_ENABLE_PROJECTS="clang;lld" \
+          -DLLVM_ENABLE_PROJECTS="clang" \
           -DLLVM_ENABLE_OCAMLDOC=OFF \
           -DLLVM_ENABLE_LTO=OFF \
           -DLLVM_ENABLE_WARNINGS=OFF \
@@ -187,11 +187,14 @@ jobs:
           -DLLVM_INCLUDE_BENCHMARKS=OFF \
           -DLLVM_INCLUDE_TESTS=OFF \
           -DLLVM_INCLUDE_EXAMPLES=OFF \
+          -DLLVM_INCLUDE_DOCS=OFF \
+          -DLLVM_INCLUDE_EXAMPLES=OFF \
           -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF \
           -DLLVM_PARALLEL_LINK_JOBS=1 \
           -DLLVM_LINK_LLVM_DYLIB=OFF \
           -DLIBCLANG_BUILD_STATIC=ON \
           -DCLANG_LINK_CLANG_DYLIB=OFF \
+          -DCLANG_INCLUDE_TESTS=OFF
 
     - name: Build & install LLVM (Linux/macOS)
       if: steps.cache-llvm-install.outputs.cache-hit != 'true' && runner.os != 'Windows'
@@ -210,8 +213,7 @@ jobs:
         cmake -S llvm-project/llvm -B llvm-project/build \
           -G Ninja \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
-          -DLLVM_ENABLE_PROJECTS="clang;lld" \
-          -DLIBCLANG_BUILD_STATIC=ON \
+          -DLLVM_ENABLE_PROJECTS="clang" \
           -DLLVM_ENABLE_OCAMLDOC=OFF \
           -DLLVM_ENABLE_LTO=OFF \
           -DLLVM_ENABLE_WARNINGS=OFF \
@@ -225,10 +227,13 @@ jobs:
           -DLLVM_INCLUDE_BENCHMARKS=OFF \
           -DLLVM_INCLUDE_TESTS=OFF \
           -DLLVM_INCLUDE_EXAMPLES=OFF \
+          -DLLVM_INCLUDE_DOCS=OFF \
           -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF \
           -DLLVM_PARALLEL_LINK_JOBS=1 \
           -DLLVM_USE_CRT_RELEASE=MT \
           -DLLVM_TARGETS_TO_BUILD="X86;AArch64" \
+          -DLIBCLANG_BUILD_STATIC=ON \
+          -DCLANG_INCLUDE_TESTS=OFF \
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
 
     - name: Build & install LLVM (Windows)
@@ -335,7 +340,7 @@ jobs:
       shell: bash
       run: |
         echo "Downloading zlib $ZLIB_VERSION..."
-        if ! curl -fsSL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        if ! curl -fsSL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"; then
             echo "Download failed"
             rm -f zlib.tgz
             exit 1
@@ -379,7 +384,7 @@ jobs:
         mkdir xapian
         cd xapian
         echo "Downloading Xapian $VERSION..."
-        if ! curl -fsSL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"
+        if ! curl -fsSL --retry 3 -o "$ARCHIVE" "https://oligarchy.co.uk/xapian/$VERSION/$ARCHIVE"; then
             echo "Download failed"
             rm -f "$ARCHIVE"
             exit 1
@@ -591,7 +596,7 @@ jobs:
         cd qt6-source
 
         echo "Downloading qtbase module..."
-        if ! curl -fsSL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"
+        if ! curl -fsSL --retry 3 -o qtbase.tar.xz "$BASE_URL/qtbase-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qtbase.tar.xz
             exit 1
@@ -601,7 +606,7 @@ jobs:
         rm qtbase.tar.xz
 
         echo "Downloading qtsvg module..."
-        if ! curl -fsSL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"
+        if ! curl -fsSL --retry 3 -o qtsvg.tar.xz "$BASE_URL/qtsvg-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qtsvg.tar.xz
             exit 1
@@ -611,7 +616,7 @@ jobs:
         rm qtsvg.tar.xz
 
         echo "Downloading qttranslations module..."
-        if ! curl -fsSL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"
+        if ! curl -fsSL --retry 3 -o qttranslations.tar.xz "$BASE_URL/qttranslations-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qttranslations.tar.xz
             exit 1
@@ -621,7 +626,7 @@ jobs:
         rm qttranslations.tar.xz
 
         echo "Downloading qttools module..."
-        if ! curl -fsSL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"
+        if ! curl -fsSL --retry 3 -o qttools.tar.xz "$BASE_URL/qttools-everywhere-src-$VERSION.tar.xz"; then
             echo "Download failed"
             rm -f qttools.tar.xz
             exit 1
@@ -944,7 +949,7 @@ jobs:
       shell: pwsh
       run: |
         # echo "Downloading htmlhelp..."
-        # if ! curl -fsSL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe
+        # if ! curl -fsSL --retry 3 -o windows/htmlhelp.exe http://web.archive.org/web/20160201063255/http://download.microsoft.com/download/0/A/9/0A939EF6-E31C-430F-A3DF-DFAE7960D564/htmlhelp.exe; then
         #   echo "Download failed"
         #   rm -f windows/htmlhelp.exe
         #   exit 1
@@ -988,7 +993,7 @@ jobs:
       shell: bash
       run: |
         echo "Downloading zlib $ZLIB_VERSION..."
-        if ! curl -fsSL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"
+        if ! curl -fsSL --retry 3 -o zlib.tgz "https://zlib.net/zlib-$ZLIB_VERSION.tar.gz"; then
             echo "Download failed"
             rm -f zlib.tgz
             exit 1
