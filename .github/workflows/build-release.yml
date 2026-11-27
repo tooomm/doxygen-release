@@ -150,7 +150,7 @@ jobs:
         
     - name: Cache LLVM installation
       id: cache-llvm-install
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: llvm-install
         key: llvm-install-${{ matrix.llvm_version }}-${{ matrix.os }}
@@ -596,7 +596,7 @@ jobs:
 
     - name: Cache Qt6 install
       id: cache-qt6-install
-      uses: actions/cache@v4
+      uses: actions/cache@v6
       with:
         path: qt6-install
         key: qt6-install-${{ env.QT6_VERSION }}-${{ matrix.os }}
