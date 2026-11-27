@@ -124,7 +124,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
 #------------------------------------- Setup Linux environment for LLVM
 
@@ -311,7 +311,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
 #------------------------------------- Setup Linux environment for Xapian
 
@@ -548,7 +548,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
 #------------------------------------- Setup Linux environment for Qt6
 
@@ -812,7 +812,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
 
 #------------------------------------- Setup Linux environment for Doxygen
 
