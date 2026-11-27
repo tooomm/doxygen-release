@@ -162,7 +162,8 @@ jobs:
         echo "Downloading LLVM ${{ matrix.llvm_version }}..."
         git clone --depth 1 --filter=blob:none --sparse --no-tags --branch llvmorg-${{ matrix.llvm_version }} https://github.com/llvm/llvm-project.git
         cd llvm-project
-        git sparse-checkout set --progress llvm
+        git sparse-checkout set llvm
+        echo "LLVM sparse checkout completed successfully"
 
 #------------------------------------- Configure LLVM build system for Linux/macOS + compile
 
