@@ -268,7 +268,7 @@ jobs:
 #------------------------------------- Upload LLVM artifacts
 
     - name: Upload LLVM static build
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: llvm-static-${{ matrix.llvm_version }}-${{ matrix.os }}.${{ matrix.archive_format }}
         archive: false
@@ -474,7 +474,7 @@ jobs:
 #------------------------------------- Upload Xapian build artifacts
 
     - name: Upload Xapian static build
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: xapian-static-${{ env.XAPIAN_VERSION }}-${{ matrix.os }}.${{ matrix.archive_format }}
         archive: false
@@ -725,7 +725,7 @@ jobs:
 #------------------------------------- Upload the Qt6 build artifacts
 
     - name: Upload Qt6 static build
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: qt6-static-${{ env.QT6_VERSION }}-${{ matrix.os }}.${{ matrix.archive_format }}
         archive: false
@@ -1302,7 +1302,7 @@ jobs:
     - name: Upload unsigned executables (Windows)
       if: runner.os == 'Windows'
       id: upload-unsigned-executables
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: doxygen-${{ steps.doxygen-version.outputs.version }}-windows-unsigned-executables
         path: |
@@ -1362,7 +1362,7 @@ jobs:
     - name: Upload unsigned installer (Windows)
       if: runner.os == 'Windows'
       id: upload-unsigned-installer
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: doxygen-$VERSION-windows-unsigned-installer
         path: installer/doxygen-$VERSION-setup.exe
@@ -1546,56 +1546,56 @@ jobs:
 
     - name: Upload Doxygen build (Windows/setup.exe)
       if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-setup.exe
         archive: false
 
     - name: Upload Doxygen build (Windows/doxygen-x64.zip)
       if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.windows.x64.bin.zip
         archive: false
 
     - name: Upload Doxygen build (Windows/doxygen_manual.chm)
       if: runner.os == 'Windows'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.chm.zip
         archive: false
 
     - name: Upload Doxygen build (macOS/doxygen.dmg)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/Doxygen-${{ steps.doxygen-version.outputs.version }}-${{ matrix.cpu }}.dmg
         archive: false
 
     - name: Upload Doxygen build (macOS/doxygen-mac.zip)
       if: runner.os == 'macOS'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}-mac-${{ matrix.cpu }}.zip
         archive: false
 
     - name: Upload Doxygen build (Linux/doxygen.src.tar.gz)
       if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.src.tar.gz
         archive: false
 
     - name: Upload Doxygen build (Linux/doxygen.linux.bin.tar.gz)
       if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen-${{ steps.doxygen-version.outputs.version }}.linux.bin.tar.gz
         archive: false
 
     - name: Upload Doxygen build (Linux/doxygen_manual.pdf.zip)
       if: runner.os == 'Linux'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         path: installer/doxygen_manual-${{ steps.doxygen-version.outputs.version }}.pdf.zip
         archive: false
