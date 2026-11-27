@@ -1,0 +1,11 @@
+# Configuration options: https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference
+
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"    # checks default .github/workflows location
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 3
+    open-pull-requests-limit: 5
