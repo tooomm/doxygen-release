@@ -103,22 +103,27 @@ jobs:
             cpu: intel
             archive_format: tar.gz
             llvm_version: 21.1.8
+            llvm_targets: "X86;AArch64"
           - os: ubuntu-22.04-arm
             cpu: arm
             archive_format: tar.gz
             llvm_version: 21.1.8
+            llvm_targets: "ARM"
           - os: windows-2025
             cpu: intel
             archive_format: zip
             llvm_version: 23.1.6
+            llvm_targets: "X86;AArch64"
           - os: macos-15 # why does webpage claim compatibility down to macOS 13 when all deps & Doxygen itself are build with macOS 15? https://www.doxygen.nl/download.html
             cpu: arm
             archive_format: tar.gz
             llvm_version: 23.1.6
+            llvm_targets: "ARM"
           - os: macos-15-intel # why does webpage claim compatibility down to macOS 13 when all deps & Doxygen itself are build with macOS 15? https://www.doxygen.nl/download.html
             cpu: intel
             archive_format: tar.gz
             llvm_version: 23.1.6
+            llvm_targets: "X86;AArch64"
 
 #------------------------------------- Job steps for LLVM
 
@@ -171,6 +176,7 @@ jobs:
         cmake -S llvm-project/llvm -B llvm-project/build \
           -G Ninja \
           -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} \
+          -DLLVM_TARGETS_TO_BUILD=${{ matrix.llvm_targets }} \
           -DLLVM_ENABLE_PROJECTS="clang" \
           -DLLVM_ENABLE_OCAMLDOC=OFF \
           -DLLVM_ENABLE_LTO=OFF \
@@ -228,7 +234,7 @@ jobs:
           -DLLVM_TOOL_REMARKS_SHLIB_BUILD=OFF \
           -DLLVM_PARALLEL_LINK_JOBS=1 \
           -DLLVM_USE_CRT_RELEASE=MT \
-          -DLLVM_TARGETS_TO_BUILD="X86;AArch64" \
+          -DLLVM_TARGETS_TO_BUILD=${{ matrix.llvm_targets }} \
           -DLIBCLANG_BUILD_STATIC=ON \
           -DCLANG_INCLUDE_TESTS=OFF \
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
